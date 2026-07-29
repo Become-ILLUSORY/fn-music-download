@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux]
         goarch: [arm64, amd64]
 
     steps:
@@ -25,10 +24,11 @@ jobs:
         go-version: '1.25'
         cache-dependency-path: backend/go.mod
 
-    - name: Build Go backend (${{ matrix.goarch }})
+    - name: Tidy and build (${{ matrix.goarch }})
       working-directory: ./backend
       run: |
-        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
+        go mod tidy
+        GOOS=linux GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
           go build -ldflags="-s -w" -o music-dl .
         echo "Binary size: $(du -h music-dl | cut -f1)"
 
@@ -70,43 +70,59 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: '1.25'
         cache-dependency-path: backend/go.mod
-    - name: Download dependencies
+
+    - name: Tidy and vet
       working-directory: ./backend
-      run: go mod download
-    - name: Vet
-      working-directory: ./backend
-      run: go vet ./...
+      run: |
+        go mod tidy
+        go vet ./...
+
     - name: Build
       working-directory: ./backend
       run: go build -o /dev/null .
 
   package-fpk:
     if: github.event_name != 'pull_request'
-    needs: [build-backend, build-frontend]
+    needs: [build-frontend]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
-    - name: Download arm64 binary
-      uses: actions/download-artifact@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
       with:
-        name: music-dl-arm64
-        path: package/app/server/
+        go-version: '1.25'
+        cache-dependency-path: backend/go.mod
 
     - name: Download frontend dist
       uses: actions/download-artifact@v4
       with:
         name: frontend-dist
-        path: package/app/server/public/
+        path: frontend/dist/
+
+    - name: Embed frontend and build arm64 binary
+      run: |
+        rm -rf backend/api/static
+        cp -r frontend/dist backend/api/static
+        cd backend
+        go mod tidy
+        GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o music-dl .
+        echo "Binary size: $(du -h music-dl | cut -f1)"
+
+    - name: Assemble package
+      run: |
+        mkdir -p package/app/server
+        cp backend/music-dl package/app/server/
+        cp -r frontend/dist/* package/app/server/public/
 
     - name: Generate icons
-      working-directory: ./package
-      run: python3 ../scripts/generate-icons.py
+      run: python3 scripts/generate-icons.py
 
     - name: Make scripts executable
       working-directory: ./package
