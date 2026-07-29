@@ -2,7 +2,6 @@ package api
 
 import (
 	"embed"
-	"io/fs"
 	"net/http"
 	"path"
 	"strings"
@@ -10,15 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:embed static/*
+//go:embed static
 var staticFS embed.FS
 
 // RegisterRoutes sets up all API routes on the Gin engine.
 func RegisterRoutes(r *gin.Engine) {
-	// Serve embedded frontend static files
-	staticSub, _ := fs.Sub(staticFS, "static")
-	r.StaticFS("/app/music-dl/assets", http.FS(staticSub))
-
 	// API routes
 	api := r.Group("/app/music-dl/api")
 	{
