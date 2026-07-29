@@ -138,12 +138,12 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
 .song-row:hover { background: var(--bg-hover); }
 .song-row td { padding: 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .col-cover { width: 36px; }
-.col-name { min-width: 100px; }
-.col-artist { min-width: 70px; }
-.col-album { min-width: 70px; }
-.col-source { width: 60px; }
+.col-name { max-width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-artist { max-width: 20%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-album { max-width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-source { width: 60px; overflow: visible; }
 .col-duration { width: 50px; text-align: right; }
-.col-actions { width: 90px; white-space: nowrap; }
+.col-actions { width: 90px; white-space: nowrap; overflow: visible; }
 .col-size, .col-modified { white-space: nowrap; }
 
 .thumb, .thumb-placeholder {
@@ -180,8 +180,11 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
   background: var(--bg-card); border-radius: var(--radius); align-items: center;
 }
 .card-body { flex: 1; min-width: 0; }
-.card-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.card-subtitle { font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-title { display: flex; align-items: center; gap: 4px; font-weight: 500; font-size: 13px; }
+.card-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex-shrink: 1; }
+.card-subtitle { display: flex; align-items: center; gap: 2px; font-size: 11px; color: var(--text-secondary); overflow: hidden; white-space: nowrap; }
+.card-artist, .card-album { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex-shrink: 1; }
+.card-sep { flex-shrink: 0; }
 .card-meta { display: flex; gap: 6px; font-size: 11px; color: var(--text-secondary); flex-wrap: wrap; }
 
 @media (max-width: 768px) {

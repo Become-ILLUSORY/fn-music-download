@@ -52,18 +52,13 @@ echo "--- Assembling package ---"
 mkdir -p "$PACKAGE_SERVER_DIR/public"
 cp -r "$FRONTEND_DIR/dist/"* "$PACKAGE_SERVER_DIR/public/"
 
-# 4. Generate icons
-echo ""
-echo "--- Generating icons ---"
-python3 "$SCRIPT_DIR/generate-icons.py"
-
-# 5. Set permissions
+# 4. Set permissions
 chmod 755 "$PACKAGE_SERVER_DIR/music-dl"
 chmod 755 "$PACKAGE_DIR/cmd/main"
 chmod 755 "$PACKAGE_DIR/cmd/install_callback"
 chmod 755 "$PACKAGE_DIR/cmd/config_callback"
 
-# 6. Build FPK package
+# 5. Build FPK package
 echo ""
 echo "--- Building FPK package ---"
 cd "$PACKAGE_DIR"

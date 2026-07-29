@@ -121,9 +121,6 @@ jobs:
         cp backend/music-dl package/app/server/
         cp -r frontend/dist/* package/app/server/public/
 
-    - name: Generate icons
-      run: python3 scripts/generate-icons.py
-
     - name: Make scripts executable
       working-directory: ./package
       run: |

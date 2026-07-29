@@ -96,9 +96,16 @@ export default function SongList({ songs, onPlay, onDownload, selected, onToggle
           return (
             <div key={songKey(song)} className={`song-card ${bad ? 'invalid' : ''}`}>
               <div className="card-body">
-                <div className="card-title">{song.name} {bad && <span className="invalid-badge">无效</span>}</div>
+                <div className="card-title">
+                  <span className="card-name">{song.name}</span>
+                  {bad && <span className="invalid-badge">无效</span>}
+                </div>
                 <div className="card-subtitle">
-                  {song.artist} · {song.album || '未知'} · <span className={`source-badge ${bad ? 'bad' : ''}`}>{song.source}</span>
+                  <span className="card-artist">{song.artist}</span>
+                  <span className="card-sep"> · </span>
+                  <span className="card-album">{song.album || '未知'}</span>
+                  <span className="card-sep"> · </span>
+                  <span className={`source-badge ${bad ? 'bad' : ''}`}>{song.source}</span>
                 </div>
                 <div className="card-meta">
                   <span>{fmtDuration(song.duration)}</span>
