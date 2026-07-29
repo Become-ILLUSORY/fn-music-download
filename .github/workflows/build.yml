@@ -117,7 +117,7 @@ jobs:
 
     - name: Assemble package
       run: |
-        mkdir -p package/app/server
+        mkdir -p package/app/server/public
         cp backend/music-dl package/app/server/
         cp -r frontend/dist/* package/app/server/public/
 
