@@ -673,7 +673,14 @@ func sanitizePathSegment(value string) string {
 	if value == "" {
 		return ""
 	}
-	return strings.Trim(utils.SanitizeFilename(value), " .")
+	// Replace path separators and other problematic chars
+	value = strings.Map(func(r rune) rune {
+		if r == '/' || r == '\\' || r == ':' || r == '*' || r == '?' || r == '"' || r == '<' || r == '>' || r == '|' {
+			return '_'
+		}
+		return r
+	}, value)
+	return strings.Trim(value, " .")
 }
 
 // ======================== ID3v2 Metadata Embedding ========================
