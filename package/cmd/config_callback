@@ -1,0 +1,14 @@
+#!/bin/bash
+# Config callback for fn-music-dl
+# Called when user changes settings via wizard/config
+
+LOG_FILE="${TRIM_PKGVAR}/config.log"
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Config callback started" > "$LOG_FILE"
+
+if [ -n "$wizard_download_dir" ]; then
+    mkdir -p "$wizard_download_dir" 2>> "$LOG_FILE"
+    echo "Updated download dir: $wizard_download_dir" >> "$LOG_FILE"
+fi
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Config callback completed" >> "$LOG_FILE"
+exit 0

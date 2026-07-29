@@ -1,0 +1,24 @@
+# Binaries
+music-dl
+
+# Go
+vendor/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Project guidance
+CLAUDE.md

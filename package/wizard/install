@@ -1,0 +1,23 @@
+[
+  {
+    "stepTitle": "下载路径设置",
+    "items": [
+      {
+        "type": "text",
+        "field": "wizard_download_dir",
+        "label": "音乐下载目录",
+        "initValue": "/vol1/1000/Music",
+        "rules": [
+          {
+            "required": true,
+            "message": "请输入下载目录"
+          }
+        ]
+      },
+      {
+        "type": "tips",
+        "helpText": "下载的音乐文件将保存到此目录。可以在应用设置中随时修改。"
+      }
+    ]
+  }
+]

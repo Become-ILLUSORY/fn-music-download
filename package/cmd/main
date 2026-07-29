@@ -1,0 +1,124 @@
+# Main lifecycle script for fn-music-dl
+# Handles start/stop/status commands from FNOS
+
+PID_FILE="${TRIM_PKGVAR}/app.pid"
+LOG_FILE="${TRIM_PKGVAR}/app.log"
+APP_BIN="${TRIM_APPDEST}/server/music-dl"
+SOCKET_PATH="${TRIM_APPDEST}/app.sock"
+DATA_DIR="${TRIM_DATA_SHARE_PATHS%%:*}"
+
+log_msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
+
+check_process() {
+    local pid="$1"
+    kill -0 "$pid" 2>/dev/null
+}
+
+status_app() {
+    if [ -f "$PID_FILE" ]; then
+        local pid
+        pid="$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
+        if [ -n "$pid" ] && check_process "$pid"; then
+            return 0
+        fi
+        rm -f "$PID_FILE"
+    fi
+    return 1
+}
+
+start_app() {
+    if status_app; then
+        log_msg "App already running"
+        return 0
+    fi
+
+    if [ ! -f "$APP_BIN" ]; then
+        echo "Binary not found: $APP_BIN" > "$TRIM_TEMP_LOGFILE"
+        return 1
+    fi
+
+    log_msg "Starting fn-music-dl..."
+
+    # Set up environment
+    export SOCKET_PATH="$SOCKET_PATH"
+    export MUSIC_DL_CONFIG_DB="${TRIM_PKGVAR}/settings.db"
+
+    # Use configured download dir from settings, or data share
+    if [ -n "$DATA_DIR" ]; then
+        # Data share is available; we'll let the app config handle the download dir
+        true
+    fi
+
+    cd "$TRIM_APPDEST/server" || exit 1
+    $APP_BIN >> "$LOG_FILE" 2>&1 &
+
+    local pid=$!
+    echo "$pid" > "$PID_FILE"
+    log_msg "Started with PID $pid"
+
+    # Wait a moment and check it's still alive
+    sleep 1
+    if ! check_process "$pid"; then
+        echo "Binary failed to start" > "$TRIM_TEMP_LOGFILE"
+        tail -5 "$LOG_FILE" >> "$TRIM_TEMP_LOGFILE"
+        return 1
+    fi
+
+    return 0
+}
+
+stop_app() {
+    log_msg "Stopping fn-music-dl..."
+
+    if [ ! -f "$PID_FILE" ]; then
+        return 0
+    fi
+
+    local pid
+    pid="$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
+    if [ -z "$pid" ] || ! check_process "$pid"; then
+        rm -f "$PID_FILE"
+        rm -f "$SOCKET_PATH"
+        return 0
+    fi
+
+    # Graceful stop
+    kill -TERM "$pid" 2>> "$LOG_FILE" || true
+
+    local count=0
+    while check_process "$pid" && [ "$count" -lt 10 ]; do
+        sleep 1
+        count=$((count + 1))
+    done
+
+    # Force kill if still running
+    if check_process "$pid"; then
+        kill -KILL "$pid" 2>> "$LOG_FILE" || true
+    fi
+
+    rm -f "$PID_FILE"
+    rm -f "$SOCKET_PATH"
+    log_msg "Stopped"
+    return 0
+}
+
+case "$1" in
+    start)
+        start_app
+        ;;
+    stop)
+        stop_app
+        ;;
+    status)
+        if status_app; then
+            exit 0
+        fi
+        exit 3
+        ;;
+    *)
+        echo "Unknown command: $1" > "$TRIM_TEMP_LOGFILE"
+        exit 1
+        ;;
+esac

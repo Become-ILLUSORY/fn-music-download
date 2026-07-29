@@ -1,0 +1,161 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [arm64, amd64]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+        cache-dependency-path: backend/go.mod
+
+    - name: Build Go backend (${{ matrix.goarch }})
+      working-directory: ./backend
+      run: |
+        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
+          go build -ldflags="-s -w" -o music-dl .
+        echo "Binary size: $(du -h music-dl | cut -f1)"
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: music-dl-${{ matrix.goarch }}
+        path: backend/music-dl
+        retention-days: 7
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Upload frontend dist
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-dist
+        path: frontend/dist/
+        retention-days: 7
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+        cache-dependency-path: backend/go.mod
+    - name: Download dependencies
+      working-directory: ./backend
+      run: go mod download
+    - name: Vet
+      working-directory: ./backend
+      run: go vet ./...
+    - name: Build
+      working-directory: ./backend
+      run: go build -o /dev/null .
+
+  package-fpk:
+    if: github.event_name != 'pull_request'
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download arm64 binary
+      uses: actions/download-artifact@v4
+      with:
+        name: music-dl-arm64
+        path: package/app/server/
+
+    - name: Download frontend dist
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-dist
+        path: package/app/server/public/
+
+    - name: Generate icons
+      working-directory: ./package
+      run: |
+        python3 -c "
+import struct, zlib
+def png(w, h, fn):
+    def c(t, d):
+        return struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xFFFFFFFF)
+    raw = b''
+    for _ in range(h):
+        raw += b'\\x00' + bytes([124, 77, 255]) * w
+    with open(fn, 'wb') as f:
+        f.write(b'\\x89PNG\\r\\n\\x1a\\n' + c(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)) + c(b'IDAT', zlib.compress(raw)) + c(b'IEND', b''))
+png(64, 64, 'ICON.PNG')
+png(256, 256, 'ICON_256.PNG')
+import os
+os.makedirs('app/ui/images', exist_ok=True)
+png(64, 64, 'app/ui/images/icon_64.png')
+png(256, 256, 'app/ui/images/icon_256.png')
+print('Icons generated')
+"
+
+    - name: Make scripts executable
+      working-directory: ./package
+      run: |
+        chmod 755 cmd/main
+        chmod 755 cmd/install_callback
+        chmod 755 cmd/config_callback
+        chmod 755 app/server/music-dl
+
+    - name: Upload FPK package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: music-dl-fpk
+        path: package/
+        retention-days: 30
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [package-fpk]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Download FPK package
+      uses: actions/download-artifact@v4
+      with:
+        name: music-dl-fpk
+        path: music-dl-fpk
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          music-dl-fpk/**
+        generate_release_notes: true

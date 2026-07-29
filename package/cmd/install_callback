@@ -1,0 +1,22 @@
+#!/bin/bash
+# Install callback for fn-music-dl
+# Called after app files are installed
+
+LOG_FILE="${TRIM_PKGVAR}/install.log"
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Install callback started" > "$LOG_FILE"
+
+# The binary and frontend are already at TRIM_APPDEST/server/
+# Ensure the server directory is executable
+chmod +x "${TRIM_APPDEST}/server/music-dl" 2>> "$LOG_FILE" || true
+
+# Create data directory for SQLite DB
+mkdir -p "${TRIM_PKGVAR}" 2>> "$LOG_FILE"
+
+# Create download directory if wizard provided one
+if [ -n "$wizard_download_dir" ]; then
+    mkdir -p "$wizard_download_dir" 2>> "$LOG_FILE"
+    echo "Download dir from wizard: $wizard_download_dir" >> "$LOG_FILE"
+fi
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Install callback completed" >> "$LOG_FILE"
+exit 0

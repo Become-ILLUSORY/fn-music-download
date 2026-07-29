@@ -1,0 +1,15 @@
+appname=music-dl
+version=1.0.0
+display_name=音乐下载
+desc=一个聚合音乐搜索与下载工具，支持多个音乐平台，可在飞牛 NAS 上直接下载高品质音乐。
+maintainer=fn-music-dl
+maintainer_url=https://github.com/Become-ILLUSORY/fn-music-download
+source=thirdparty
+platform=arm
+install_dep_apps=
+os_min_version=1.1.3100
+ctl_stop=true
+desktop_uidir=ui
+desktop_applaunchname=music-dl.main
+checkport=false
+disable_authorization_path=false
