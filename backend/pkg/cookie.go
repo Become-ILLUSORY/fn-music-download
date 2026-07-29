@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // CookieManager manages per-source cookie strings, backed by SQLite.

@@ -13,13 +13,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf16"
 
 	"github.com/dhowden/tag"
 	"github.com/guohuiyuan/music-lib/model"
 	"github.com/guohuiyuan/music-lib/soda"
-	"github.com/guohuiyuan/music-lib/utils"
 )
 
 const (
@@ -178,18 +176,22 @@ func fetchSongAudio(song *model.Song) ([]byte, string, error) {
 }
 
 // FetchDecryptedSodaAudio downloads and decrypts soda (qishui) encrypted audio.
-func FetchDecryptedSodaAudio(song *model.Song) ([]byte, error) {
+func FetchDecryptedSodaAudio(song *model.Song) ([]byte, string, error) {
 	cookie := CM.Get("soda")
 	sodaInst := soda.New(cookie)
 	info, err := sodaInst.GetDownloadInfo(song)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	encryptedData, _, err := FetchBytesWithMime(info.URL, "soda")
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return soda.DecryptAudio(encryptedData, info.PlayAuth)
+	data, err := soda.DecryptAudio(encryptedData, info.PlayAuth)
+	if err != nil {
+		return nil, "", err
+	}
+	return data, "", nil
 }
 
 // ======================== HTTP Helpers ========================

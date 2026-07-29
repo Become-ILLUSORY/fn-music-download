@@ -136,7 +136,7 @@ func handleStream(c *gin.Context) {
 
 	// Handle soda decryption
 	if source == "soda" {
-		data, err := pkg.FetchDecryptedSodaAudio(song)
+		data, _, err := pkg.FetchDecryptedSodaAudio(song)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
