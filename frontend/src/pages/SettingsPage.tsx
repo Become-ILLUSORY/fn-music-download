@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react'
 
 interface Settings {
-  downloadDir: string
-  downloadFilenameTemplate: string
-  embedDownload: boolean
   webPageSize: number
   downloadConcurrency: number
   autoCacheOnPlay: boolean
@@ -15,9 +12,6 @@ interface Cookies {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>({
-    downloadDir: 'data/downloads',
-    downloadFilenameTemplate: '{artist} - {name}',
-    embedDownload: true,
     webPageSize: 200,
     downloadConcurrency: 3,
     autoCacheOnPlay: true,
@@ -92,21 +86,6 @@ export default function SettingsPage() {
       <h2>设置</h2>
 
       {saved && <div className="success-msg">已保存</div>}
-
-      <section className="settings-section">
-        <h3>下载设置</h3>
-        <div className="setting-item">
-          <label>
-            <input
-              type="checkbox"
-              checked={settings.embedDownload}
-              onChange={e => setSettings({ ...settings, embedDownload: e.target.checked })}
-            />
-            下载时内嵌元数据（封面/歌词）
-          </label>
-        </div>
-        <button className="btn-primary" onClick={saveSettings}>保存设置</button>
-      </section>
 
       <section className="settings-section">
         <h3>平台 Cookie</h3>

@@ -80,8 +80,8 @@ export default function SongList({ songs, onPlay, onDownload, selected, onToggle
                 )}
               </div>
               <div className="song-info">
-                <h3 className="song-name" title={song.name}>
-                  {song.name}
+                <h3 className="song-name">
+                  <span className="song-name-text" title={song.name}>{song.name}</span>
                   {bad && <span className="invalid-badge">无效</span>}
                 </h3>
                 <div className="artist-line">
