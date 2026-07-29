@@ -427,7 +427,6 @@ func writeParallelRange(w io.Writer, urlStr, source string, start, end int64) (i
 		}
 	}
 	return total, nil
-	return nil
 }
 
 func fetchRangeChunk(urlStr, source string, start, end int64) ([]byte, string, error) {
