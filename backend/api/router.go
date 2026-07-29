@@ -14,7 +14,11 @@ var staticFS embed.FS
 
 // RegisterRoutes sets up all API routes on the Gin engine.
 func RegisterRoutes(r *gin.Engine) {
-	// API routes
+	r.GET("/app/music-dl/healthz", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok", "app": "music-dl"})
+	})
+
+	// API group — specific paths, no conflict with catch-all
 	api := r.Group("/app/music-dl/api")
 	{
 		api.GET("/search", handleSearch)
@@ -46,25 +50,23 @@ func RegisterRoutes(r *gin.Engine) {
 		api.GET("/recommend", handleRecommend)
 	}
 
-	// Serve the frontend SPA for all other /app/music-dl paths
-	r.GET("/app/music-dl", serveFrontend)
-	r.GET("/app/music-dl/*path", serveFrontend)
-
-	// Health check (used by FNOS gateway)
-	r.GET("/app/music-dl/healthz", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "app": "music-dl"})
+	// NoRoute catch-all: serve frontend SPA for any unmatched /app/music-dl path
+	r.NoRoute(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/app/music-dl") {
+			serveFrontend(c)
+			return
+		}
+		c.Status(http.StatusNotFound)
 	})
 }
 
 func serveFrontend(c *gin.Context) {
-	// Try to serve from embedded static first
 	up := strings.TrimPrefix(c.Request.URL.Path, "/app/music-dl")
 	if up == "" || up == "/" {
 		up = "/index.html"
 	}
 	data, err := staticFS.ReadFile("static" + up)
 	if err != nil {
-		// Fallback to index.html for SPA routing
 		data, err = staticFS.ReadFile("static/index.html")
 		if err != nil {
 			c.Status(http.StatusNotFound)
