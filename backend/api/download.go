@@ -170,7 +170,7 @@ func handleStream(c *gin.Context) {
 		c.Header("Content-Type", ct)
 		c.Header("Content-Length", strconv.FormatInt(fetch.ContentLength, 10))
 		c.Header("Accept-Ranges", "bytes")
-		_ = fetch.WriteTo(c.Writer)
+		_, _ = fetch.WriteTo(c.Writer)
 		return
 	}
 
