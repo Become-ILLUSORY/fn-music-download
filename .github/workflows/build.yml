@@ -140,11 +140,6 @@ jobs:
     - name: Build FPK package
       run: |
         /tmp/fnpack build --directory package/
-        FPK=$(find . -name "*.fpk" -maxdepth 2 | head -1)
-        if [ -n "$FPK" ]; then
-          mv "$FPK" music-dl.fpk
-        fi
-        ls -lh music-dl.fpk
 
     - name: Upload FPK artifact
       uses: actions/upload-artifact@v4
