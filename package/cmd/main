@@ -5,7 +5,6 @@ PID_FILE="${TRIM_PKGVAR}/app.pid"
 LOG_FILE="${TRIM_PKGVAR}/app.log"
 APP_BIN="${TRIM_APPDEST}/server/music-dl"
 SOCKET_PATH="${TRIM_APPDEST}/app.sock"
-DATA_DIR="${TRIM_DATA_SHARE_PATHS%%:*}"
 
 log_msg() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
@@ -30,42 +29,66 @@ status_app() {
 
 start_app() {
     if status_app; then
-        log_msg "App already running"
         return 0
     fi
 
+    log_msg "Starting fn-music-dl..."
+    echo "--- ENV ---" > "$LOG_FILE"
+    echo "TRIM_APPDEST=$TRIM_APPDEST" >> "$LOG_FILE"
+    echo "TRIM_PKGVAR=$TRIM_PKGVAR" >> "$LOG_FILE"
+    echo "TRIM_DATA_SHARE_PATHS=$TRIM_DATA_SHARE_PATHS" >> "$LOG_FILE"
+    echo "APP_BIN=$APP_BIN" >> "$LOG_FILE"
+    echo "SOCKET_PATH=$SOCKET_PATH" >> "$LOG_FILE"
+    echo "--- CHECK ---" >> "$LOG_FILE"
+
     if [ ! -f "$APP_BIN" ]; then
         echo "Binary not found: $APP_BIN" > "$TRIM_TEMP_LOGFILE"
+        ls -la "$(dirname "$APP_BIN" 2>/dev/null)" >> "$TRIM_TEMP_LOGFILE" 2>&1 || true
         return 1
     fi
 
-    log_msg "Starting fn-music-dl..."
+    if [ ! -x "$APP_BIN" ]; then
+        chmod +x "$APP_BIN" 2>/dev/null || true
+    fi
+
+    file "$APP_BIN" >> "$LOG_FILE" 2>&1 || true
 
     # Set up environment
     export SOCKET_PATH="$SOCKET_PATH"
     export MUSIC_DL_CONFIG_DB="${TRIM_PKGVAR}/settings.db"
 
-    # Use configured download dir from settings, or data share
-    if [ -n "$DATA_DIR" ]; then
-        # Data share is available; we'll let the app config handle the download dir
-        true
+    # Run from TRIM_APPDEST so relative paths resolve relative to app root
+    cd "$TRIM_APPDEST" 2>>"$LOG_FILE" || {
+        echo "Failed to cd to TRIM_APPDEST=$TRIM_APPDEST" > "$TRIM_TEMP_LOGFILE"
+        ls -la "$(dirname "$TRIM_APPDEST" 2>/dev/null)" >> "$TRIM_TEMP_LOGFILE" 2>&1 || true
+        return 1
+    }
+
+    # Check for server dir
+    if [ ! -d "server" ]; then
+        echo "server/ directory not found under $TRIM_APPDEST" > "$TRIM_TEMP_LOGFILE"
+        ls -la . >> "$TRIM_TEMP_LOGFILE" 2>&1
+        return 1
     fi
 
-    cd "$TRIM_APPDEST/server" || exit 1
-    $APP_BIN >> "$LOG_FILE" 2>&1 &
-
+    # Run the binary
+    "$APP_BIN" >> "$LOG_FILE" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_FILE"
     log_msg "Started with PID $pid"
 
-    # Wait a moment and check it's still alive
+    # Wait and verify
     sleep 1
     if ! check_process "$pid"; then
         echo "Binary failed to start" > "$TRIM_TEMP_LOGFILE"
-        tail -5 "$LOG_FILE" >> "$TRIM_TEMP_LOGFILE"
+        echo "--- LAST 20 LOG LINES ---" >> "$TRIM_TEMP_LOGFILE"
+        tail -20 "$LOG_FILE" >> "$TRIM_TEMP_LOGFILE" 2>&1 || true
+        echo "--- PID_FILE ---" >> "$TRIM_TEMP_LOGFILE"
+        cat "$PID_FILE" >> "$TRIM_TEMP_LOGFILE" 2>&1 || true
         return 1
     fi
 
+    log_msg "Start OK"
     return 0
 }
 
@@ -73,6 +96,7 @@ stop_app() {
     log_msg "Stopping fn-music-dl..."
 
     if [ ! -f "$PID_FILE" ]; then
+        rm -f "$SOCKET_PATH"
         return 0
     fi
 
@@ -84,16 +108,13 @@ stop_app() {
         return 0
     fi
 
-    # Graceful stop
     kill -TERM "$pid" 2>> "$LOG_FILE" || true
-
     local count=0
     while check_process "$pid" && [ "$count" -lt 10 ]; do
         sleep 1
         count=$((count + 1))
     done
 
-    # Force kill if still running
     if check_process "$pid"; then
         kill -KILL "$pid" 2>> "$LOG_FILE" || true
     fi

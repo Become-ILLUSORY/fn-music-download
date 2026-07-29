@@ -3,11 +3,23 @@
 # Called after app files are installed
 
 LOG_FILE="${TRIM_PKGVAR}/install.log"
+mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Install callback started" > "$LOG_FILE"
 
-# The binary and frontend are already at TRIM_APPDEST/server/
-# Ensure the server directory is executable
-chmod +x "${TRIM_APPDEST}/server/music-dl" 2>> "$LOG_FILE" || true
+echo "TRIM_APPDEST=$TRIM_APPDEST" >> "$LOG_FILE"
+echo "TRIM_PKGVAR=$TRIM_PKGVAR" >> "$LOG_FILE"
+echo "TRIM_DATA_SHARE_PATHS=$TRIM_DATA_SHARE_PATHS" >> "$LOG_FILE"
+
+# List installed files
+echo "--- Installed files ---" >> "$LOG_FILE"
+ls -la "${TRIM_APPDEST}/" >> "$LOG_FILE" 2>&1 || true
+ls -la "${TRIM_APPDEST}/server/" >> "$LOG_FILE" 2>&1 || true
+
+# Ensure binary is executable
+if [ -f "${TRIM_APPDEST}/server/music-dl" ]; then
+    chmod +x "${TRIM_APPDEST}/server/music-dl" 2>> "$LOG_FILE" || true
+    file "${TRIM_APPDEST}/server/music-dl" >> "$LOG_FILE" 2>&1 || true
+fi
 
 # Create data directory for SQLite DB
 mkdir -p "${TRIM_PKGVAR}" 2>> "$LOG_FILE"
