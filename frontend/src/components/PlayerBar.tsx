@@ -5,7 +5,7 @@ interface Song {
   name: string
   artist: string
   source: string
-  cover: string
+  cover?: string
 }
 
 interface PlayerBarProps {
