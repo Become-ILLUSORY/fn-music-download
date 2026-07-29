@@ -132,11 +132,25 @@ jobs:
         chmod 755 cmd/config_callback
         chmod 755 app/server/music-dl
 
-    - name: Upload FPK package artifact
+    - name: Download fnpack
+      run: |
+        curl -sL -o /tmp/fnpack "https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64"
+        chmod +x /tmp/fnpack
+
+    - name: Build FPK package
+      run: |
+        /tmp/fnpack build --directory package/
+        FPK=$(find . -name "*.fpk" -maxdepth 2 | head -1)
+        if [ -n "$FPK" ]; then
+          mv "$FPK" music-dl.fpk
+        fi
+        ls -lh music-dl.fpk
+
+    - name: Upload FPK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: music-dl-fpk
-        path: package/
+        name: music-dl.fpk
+        path: music-dl.fpk
         retention-days: 30
 
   release:
