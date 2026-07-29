@@ -23,7 +23,8 @@ func main() {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
 	r.Use(corsMiddleware())
 
 	api.RegisterRoutes(r)

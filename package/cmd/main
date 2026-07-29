@@ -45,38 +45,21 @@ start_app() {
         return 0
     fi
 
-    # Init log file
-    : > "$LOG_FILE" 2>/dev/null || LOG_FILE="/tmp/music-dl-app.log"
-    : > "$LOG_FILE" 2>/dev/null || true
-
     log_msg "Starting fn-music-dl..."
-    echo "--- ENV ---" >> "$LOG_FILE"
-    echo "TRIM_APPDEST=$TRIM_APPDEST" >> "$LOG_FILE"
-    echo "TRIM_PKGVAR=$TRIM_PKGVAR" >> "$LOG_FILE"
-    echo "TRIM_DATA_SHARE_PATHS=$TRIM_DATA_SHARE_PATHS" >> "$LOG_FILE"
-    echo "APP_BIN=$APP_BIN" >> "$LOG_FILE"
-    echo "SOCKET_PATH=$SOCKET_PATH" >> "$LOG_FILE"
-    echo "PWD=$(pwd)" >> "$LOG_FILE"
-    echo "--- CHECK ---" >> "$LOG_FILE"
 
     if [ ! -f "$APP_BIN" ]; then
         local msg="Binary not found at $APP_BIN"
-        echo "$msg" >> "$LOG_FILE"
         write_error "$msg"
-        ls -la "$(dirname "$APP_BIN" 2>/dev/null)" >> "$LOG_FILE" 2>&1 || true
         return 1
     fi
 
     chmod +x "$APP_BIN" 2>/dev/null || true
-
-    file "$APP_BIN" >> "$LOG_FILE" 2>&1 || true
 
     # Ensure server dir exists
     local server_dir
     server_dir="$(dirname "$APP_BIN")"
     if [ ! -d "$server_dir" ]; then
         local msg="server dir not found: $server_dir"
-        echo "$msg" >> "$LOG_FILE"
         write_error "$msg"
         return 1
     fi
@@ -96,31 +79,21 @@ start_app() {
     fi
 
     # Change to the app root directory
-    cd "$TRIM_APPDEST" 2>>"$LOG_FILE" || {
-        local msg="Failed to cd to $TRIM_APPDEST"
-        echo "$msg" >> "$LOG_FILE"
-        write_error "$msg"
+    cd "$TRIM_APPDEST" 2>/dev/null || {
+        write_error "Failed to cd to $TRIM_APPDEST"
         return 1
     }
-
-    log_msg "Launching binary..."
-    log_msg "SOCKET_PATH=$SOCKET_PATH"
-    log_msg "MUSIC_DL_CONFIG_DB=$MUSIC_DL_CONFIG_DB"
 
     # Run the binary in background
     "$APP_BIN" >> "$LOG_FILE" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_FILE"
-    log_msg "PID=$pid"
 
     # Wait and verify still running
     sleep 2
     if ! check_process "$pid"; then
-        local msg="Binary exited immediately"
-        echo "$msg" >> "$LOG_FILE"
-        write_error "$msg"
-        echo "--- LAST 30 LOG LINES ---" >> "$LOG_FILE"
-        tail -30 "$LOG_FILE" >> "$LOG_FILE" 2>&1 || true
+        write_error "Binary exited immediately"
+        tail -10 "$LOG_FILE" >> "$LOG_FILE" 2>/dev/null || true
         return 1
     fi
 
@@ -128,15 +101,12 @@ start_app() {
     local waited=0
     while [ $waited -lt 5 ]; do
         if [ -S "$SOCKET_PATH" ]; then
-            log_msg "Socket ready at $SOCKET_PATH"
             return 0
         fi
         sleep 1
         waited=$((waited + 1))
     done
 
-    # Process running but socket not ready yet — still OK
-    log_msg "Process running, waiting for socket..."
     return 0
 }
 
