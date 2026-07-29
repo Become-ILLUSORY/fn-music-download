@@ -18,9 +18,10 @@ interface SongListProps {
   onDownload?: (song: Song) => void
   selected?: Set<string>
   onToggleSelect?: (key: string) => void
+  invalidSources?: Set<string>
 }
 
-export default function SongList({ songs, onPlay, onDownload, selected, onToggleSelect }: SongListProps) {
+export default function SongList({ songs, onPlay, onDownload, selected, onToggleSelect, invalidSources }: SongListProps) {
   if (songs.length === 0) return null
 
   const fmtDuration = (sec: number) => {
@@ -36,10 +37,10 @@ export default function SongList({ songs, onPlay, onDownload, selected, onToggle
   }
 
   const songKey = (s: Song) => `${s.source}:${s.id}`
+  const isInvalid = (s: Song) => invalidSources?.has(songKey(s))
 
   return (
     <div className="song-list">
-      {/* Desktop table view */}
       <table className="song-table">
         <thead>
           <tr>
@@ -54,77 +55,63 @@ export default function SongList({ songs, onPlay, onDownload, selected, onToggle
           </tr>
         </thead>
         <tbody>
-          {songs.map(song => (
-            <tr key={songKey(song)} className="song-row">
-              {selected && (
-                <td className="col-check">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(songKey(song))}
-                    onChange={() => onToggleSelect?.(songKey(song))}
-                  />
-                </td>
-              )}
-              <td className="col-cover">
-                {song.cover ? (
-                  <img src={song.cover} alt="" className="thumb" crossOrigin="anonymous" />
-                ) : (
-                  <div className="thumb-placeholder">🎵</div>
+          {songs.map(song => {
+            const bad = isInvalid(song)
+            return (
+              <tr key={songKey(song)} className={`song-row ${bad ? 'invalid' : ''}`}>
+                {selected && (
+                  <td className="col-check">
+                    <input type="checkbox" checked={selected.has(songKey(song))} onChange={() => onToggleSelect?.(songKey(song))} />
+                  </td>
                 )}
-              </td>
-              <td className="col-name">{song.name}</td>
-              <td className="col-artist">{song.artist}</td>
-              <td className="col-album">{song.album}</td>
-              <td className="col-source">
-                <span className="source-badge">{song.source}</span>
-              </td>
-              <td className="col-duration">{fmtDuration(song.duration)}</td>
-              <td className="col-actions">
-                <div className="action-btns">
-                  {onPlay && (
-                    <button className="btn-icon" onClick={() => onPlay(song)} title="试听">▶</button>
-                  )}
-                  {onDownload && (
-                    <button className="btn-icon" onClick={() => onDownload(song)} title="下载">⬇</button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
+                <td className="col-cover">
+                  {song.cover ? <img src={song.cover} alt="" className="thumb" crossOrigin="anonymous" />
+                    : <div className="thumb-placeholder">🎵</div>}
+                </td>
+                <td className="col-name">
+                  {song.name}
+                  {bad && <span className="invalid-badge">无效</span>}
+                </td>
+                <td className="col-artist">{song.artist}</td>
+                <td className="col-album">{song.album}</td>
+                <td className="col-source">
+                  <span className={`source-badge ${bad ? 'bad' : ''}`}>{song.source}</span>
+                </td>
+                <td className="col-duration">{fmtDuration(song.duration)}</td>
+                <td className="col-actions">
+                  <div className="action-btns">
+                    {onPlay && <button className="btn-icon" onClick={() => onPlay(song)} title="试听">▶</button>}
+                    {onDownload && <button className="btn-icon" onClick={() => onDownload(song)} title="下载">⬇</button>}
+                  </div>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
 
-      {/* Mobile card view */}
       <div className="song-cards">
-        {songs.map(song => (
-          <div key={songKey(song)} className="song-card">
-            <div className="card-left">
-              {song.cover ? (
-                <img src={song.cover} alt="" className="card-cover" crossOrigin="anonymous" />
-              ) : (
-                <div className="card-cover-placeholder">🎵</div>
-              )}
-            </div>
-            <div className="card-body">
-              <div className="card-title">{song.name}</div>
-              <div className="card-subtitle">
-                {song.artist} · {song.album || '未知专辑'} · <span className="source-badge">{song.source}</span>
+        {songs.map(song => {
+          const bad = isInvalid(song)
+          return (
+            <div key={songKey(song)} className={`song-card ${bad ? 'invalid' : ''}`}>
+              <div className="card-body">
+                <div className="card-title">{song.name} {bad && <span className="invalid-badge">无效</span>}</div>
+                <div className="card-subtitle">
+                  {song.artist} · {song.album || '未知'} · <span className={`source-badge ${bad ? 'bad' : ''}`}>{song.source}</span>
+                </div>
+                <div className="card-meta">
+                  <span>{fmtDuration(song.duration)}</span>
+                  {song.size ? <span>{fmtSize(song.size)}</span> : null}
+                </div>
               </div>
-              <div className="card-meta">
-                <span>{fmtDuration(song.duration)}</span>
-                {song.size ? <span>{fmtSize(song.size)}</span> : null}
+              <div className="card-actions">
+                {onPlay && <button className="btn-icon" onClick={() => onPlay(song)}>▶</button>}
+                {onDownload && <button className="btn-icon" onClick={() => onDownload(song)}>⬇</button>}
               </div>
             </div>
-            <div className="card-actions">
-              {onPlay && (
-                <button className="btn-icon" onClick={() => onPlay(song)}>▶</button>
-              )}
-              {onDownload && (
-                <button className="btn-icon" onClick={() => onDownload(song)}>⬇</button>
-              )}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

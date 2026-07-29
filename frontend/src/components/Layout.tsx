@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 
 const tabs = [
   { key: 'search', label: '搜索', icon: '🔍' },
+  { key: 'download', label: '下载', icon: '⬇️' },
   { key: 'local', label: '本地', icon: '💿' },
   { key: 'settings', label: '设置', icon: '⚙️' },
 ]

@@ -24,6 +24,10 @@ func RegisterRoutes(r *gin.Engine) {
 		api.GET("/search", handleSearch)
 		api.GET("/parse", handleParse)
 		api.POST("/download", handleDownload)
+		api.POST("/download/queue", handleEnqueueDownload)
+		api.GET("/download/tasks", handleGetDownloadTasks)
+		api.DELETE("/download/task", handleDeleteDownloadTask)
+		api.GET("/download/completed", handleGetCompletedDownloads)
 		api.GET("/stream", handleStream)
 
 		api.GET("/local/music", handleLocalMusic)
@@ -42,6 +46,9 @@ func RegisterRoutes(r *gin.Engine) {
 
 		api.GET("/sources", handleGetSources)
 		api.GET("/recommend", handleRecommend)
+
+		api.POST("/validate", handleBatchValidate)
+		api.POST("/retry", handleBatchRetry)
 	}
 
 	// NoRoute catch-all: serve frontend SPA for any unmatched /app/music-dl path

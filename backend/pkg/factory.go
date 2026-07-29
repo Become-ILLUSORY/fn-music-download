@@ -525,3 +525,93 @@ func GetOriginalLink(source, id, typeStr string) string {
 	}
 	return ""
 }
+
+// CalcSongSimilarity computes a similarity score between two songs (0-1).
+func CalcSongSimilarity(name, artist, candName, candArtist string) float64 {
+	nameA := normalizeText(name)
+	nameB := normalizeText(candName)
+	if nameA == "" || nameB == "" {
+		return 0
+	}
+	nameSim := similarityScore(nameA, nameB)
+	artistA := normalizeText(artist)
+	artistB := normalizeText(candArtist)
+	if artistA == "" || artistB == "" {
+		return nameSim
+	}
+	artistSim := similarityScore(artistA, artistB)
+	return nameSim*0.7 + artistSim*0.3
+}
+
+func normalizeText(s string) string {
+	if s == "" {
+		return ""
+	}
+	s = strings.ToLower(s)
+	var b strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r >= 0x4E00 {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func similarityScore(a, b string) float64 {
+	if a == b {
+		return 1
+	}
+	if a == "" || b == "" {
+		return 0
+	}
+	ra := []rune(a)
+	rb := []rune(b)
+	maxLen := len(ra)
+	if len(rb) > maxLen {
+		maxLen = len(rb)
+	}
+	if maxLen == 0 {
+		return 0
+	}
+	dist := levenshteinDistance(ra, rb)
+	if dist >= maxLen {
+		return 0
+	}
+	return 1 - float64(dist)/float64(maxLen)
+}
+
+func levenshteinDistance(a, b []rune) int {
+	la, lb := len(a), len(b)
+	if la == 0 {
+		return lb
+	}
+	if lb == 0 {
+		return la
+	}
+	prev := make([]int, lb+1)
+	cur := make([]int, lb+1)
+	for j := 0; j <= lb; j++ {
+		prev[j] = j
+	}
+	for i := 1; i <= la; i++ {
+		cur[0] = i
+		for j := 1; j <= lb; j++ {
+			cost := 0
+			if a[i-1] != b[j-1] {
+				cost = 1
+			}
+			del := prev[j] + 1
+			ins := cur[j-1] + 1
+			sub := prev[j-1] + cost
+			cur[j] = del
+			if ins < cur[j] {
+				cur[j] = ins
+			}
+			if sub < cur[j] {
+				cur[j] = sub
+			}
+		}
+		prev, cur = cur, prev
+	}
+	return prev[lb]
+}

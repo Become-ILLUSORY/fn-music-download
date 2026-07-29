@@ -9,9 +9,10 @@ interface SearchBarProps {
   loading?: boolean
   initialQuery?: string
   searchType?: string
+  initialSources?: string[]
 }
 
-export default function SearchBar({ onSearch, loading, initialQuery, searchType: st }: SearchBarProps) {
+export default function SearchBar({ onSearch, loading, initialQuery, searchType: st, initialSources }: SearchBarProps) {
   const [query, setQuery] = useState(initialQuery || '')
   const [searchType, setSearchType] = useState(st || 'song')
   const [sources, setSources] = useState<string[]>([])
@@ -27,10 +28,15 @@ export default function SearchBar({ onSearch, loading, initialQuery, searchType:
       .then(data => {
         setAllSources(data.sources || [])
         setDescriptions(data.descriptions || {})
-        setSources(data.defaults || [])
+        // Use initialSources if provided, otherwise use defaults
+        if (initialSources && initialSources.length > 0) {
+          setSources(initialSources)
+        } else {
+          setSources(data.defaults || [])
+        }
       })
       .catch(() => {})
-  }, [])
+  }, []) // only once on mount
 
   useEffect(() => {
     if (initialQuery) setQuery(initialQuery)
