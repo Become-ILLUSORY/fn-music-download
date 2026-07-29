@@ -247,17 +247,25 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
 
 /* Mobile */
 @media (max-width: 768px) {
-  .song-card { padding: 12px; border-radius: 12px; align-items: flex-start; }
-  .cover-wrapper { width: 48px; height: 48px; margin-right: 12px; border-radius: 8px; }
-  .song-name { font-size: 14px; margin-bottom: 3px; }
-  .song-name-text { white-space: normal; word-break: break-word; }
-  .song-name .btn-link { white-space: normal; word-break: break-word; display: inline; }
-  .artist-line { font-size: 11px; margin-bottom: 5px; }
-  .tags { flex-wrap: wrap; }
-  .tag { padding: 2px 5px; font-size: 9px; }
-  .actions { gap: 6px; }
-  .btn-circle, .btn-icon { width: 32px; height: 32px; font-size: 12px; }
-  .result-list { gap: 10px; }
+  .song-card {
+    padding: 10px 8px;
+    align-items: center;
+    border-radius: 12px;
+  }
+  .cover-wrapper {
+    width: 40px; height: 40px;
+    margin-right: 8px; border-radius: 6px;
+  }
+  .song-info { margin-right: 6px; }
+  .song-name { font-size: 13px; margin-bottom: 2px; }
+  .song-name-text { white-space: nowrap; }
+  .song-name .btn-link { white-space: nowrap; display: block; }
+  .artist-line { font-size: 10px; margin-bottom: 3px; white-space: nowrap; }
+  .tags { flex-wrap: nowrap; gap: 3px; }
+  .tag { padding: 1px 4px; font-size: 9px; flex-shrink: 0; }
+  .actions { gap: 4px; }
+  .btn-circle, .btn-icon { width: 30px; height: 30px; font-size: 11px; }
+  .result-list { gap: 8px; }
 }
 
 /* ========== Playlist Grid (for search results) ========== */

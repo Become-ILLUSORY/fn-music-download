@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { usePlayer } from '../hooks/usePlayer'
 import SearchBar from '../components/SearchBar'
 import SongList from '../components/SongList'
 import PlaylistGrid from '../components/PlaylistGrid'
-import PlayerBar from '../components/PlayerBar'
 
 interface Song {
   id: string
@@ -29,6 +29,7 @@ interface Playlist {
 }
 
 const apiBase = '/app/music-dl/api'
+const STORAGE_KEY = 'music-dl-search-results'
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -37,22 +38,119 @@ export default function SearchPage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [resultType, setResultType] = useState<string>('')
   const [error, setError] = useState('')
-  const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [detailSongs, setDetailSongs] = useState<Song[]>([])
-  const [invalidSongs, setInvalidSongs] = useState<Set<string>>(new Set())
-  const [validating, setValidating] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const player = usePlayer()
 
   // Restore from URL params
   const initialQuery = searchParams.get('q') || ''
   const initialType = searchParams.get('type') || 'song'
   const initialSources = searchParams.get('sources')?.split(',').filter(Boolean) || []
 
+  // Restore search results from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const data = JSON.parse(saved)
+        if (data.songs?.length || data.playlists?.length) {
+          setSongs(data.songs || [])
+          setPlaylists(data.playlists || [])
+          setResultType(data.resultType || '')
+          setDetailSongs(data.detailSongs || [])
+        }
+      }
+    } catch {}
+  }, [])
+
+  // Save results to sessionStorage
+  const persistResults = (data: {
+    songs?: Song[]
+    playlists?: Playlist[]
+    resultType: string
+    detailSongs?: Song[]
+  }) => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    } catch {}
+  }
+
+  const handlePlay = useCallback((song: Song) => {
+    player.play(song)
+  }, [player])
+
+  const autoFixSongs = useCallback(async (songList: Song[]): Promise<Song[]> => {
+    if (songList.length === 0) return songList
+
+    try {
+      // 1. Validate all songs
+      const valRes = await fetch(`${apiBase}/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ songs: songList.map(s => ({ id: s.id, source: s.source })) }),
+      })
+      const valData = await valRes.json()
+      if (!valData.results) return songList
+
+      const badKeys = new Set<string>()
+      valData.results.forEach((r: any) => {
+        if (!r.playable) badKeys.add(`${r.source}:${r.id}`)
+      })
+
+      if (badKeys.size === 0) return songList
+
+      // 2. Find alt sources for bad songs
+      const badSongs = songList.filter(s => badKeys.has(`${s.source}:${s.id}`))
+      const retryRes = await fetch(`${apiBase}/retry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          songs: badSongs.map(s => ({ id: s.id, source: s.source, name: s.name, artist: s.artist })),
+        }),
+      })
+      const retryData = await retryRes.json()
+      if (!retryData.results) return songList
+
+      // 3. Build replacement map
+      const replacements = new Map<string, Song>()
+      retryData.results.forEach((r: any) => {
+        if (r.altId && r.altSource) {
+          const original = songList.find(s => s.id === r.id && s.source === r.source)
+          replacements.set(`${r.source}:${r.id}`, {
+            id: r.altId,
+            source: r.altSource,
+            name: r.altName || original?.name || '',
+            artist: r.altArtist || original?.artist || '',
+            album: original?.album || '',
+            duration: original?.duration || 0,
+            cover: original?.cover || '',
+          })
+        }
+      })
+
+      // 4. Apply replacements
+      const result = songList.map(s => {
+        const key = `${s.source}:${s.id}`
+        if (badKeys.has(key) && replacements.has(key)) {
+          return replacements.get(key)!
+        }
+        return s
+      }).filter(s => {
+        const key = `${s.source}:${s.id}`
+        return !badKeys.has(key) || replacements.has(key)
+      })
+
+      return result
+    } catch {
+      return songList
+    }
+  }, [])
+
   const handleSearch = useCallback(async (query: string, sources: string[], searchType: string) => {
     setLoading(true)
     setError('')
     setDetailSongs([])
-    setCurrentSong(null)
-    setInvalidSongs(new Set())
+    setSelected(new Set())
 
     setSearchParams({ q: query, type: searchType, sources: sources.join(',') }, { replace: true })
 
@@ -65,20 +163,21 @@ export default function SearchPage() {
       if (data.type === 'playlist_detail' || data.type === 'detail') {
         setPlaylists(data.playlist ? [data.playlist] : [])
         setSongs(data.songs || [])
+        setDetailSongs(data.songs || [])
         setResultType('detail')
-        if (data.playlist) setDetailSongs(data.songs || [])
+        persistResults({ songs: data.songs, playlists: data.playlist ? [data.playlist] : [], resultType: 'detail', detailSongs: data.songs })
       } else if (data.type === 'playlist' || data.type === 'album') {
         setPlaylists(data.playlists || [])
         setSongs([])
         setResultType(data.type)
+        persistResults({ playlists: data.playlists, resultType: data.type })
       } else {
-        setSongs(data.songs || [])
+        // Song search — auto-fix invalid sources
+        const fixed = await autoFixSongs(data.songs || [])
+        setSongs(fixed)
         setPlaylists([])
         setResultType('song')
-        // Auto-validate playable sources
-        if (data.songs?.length > 0) {
-          autoValidate(data.songs)
-        }
+        persistResults({ songs: fixed, resultType: 'song' })
       }
     } catch (err: any) {
       setError(err.message || '搜索失败')
@@ -87,36 +186,7 @@ export default function SearchPage() {
     } finally {
       setLoading(false)
     }
-  }, [setSearchParams])
-
-  const autoValidate = async (songList: Song[]) => {
-    setValidating(true)
-    try {
-      const res = await fetch(`${apiBase}/validate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ songs: songList.map(s => ({ id: s.id, source: s.source })) }),
-      })
-      const data = await res.json()
-      if (data.results) {
-        const bad = new Set<string>()
-        data.results.forEach((r: any) => {
-          if (!r.playable) bad.add(`${r.source}:${r.id}`)
-        })
-        setInvalidSongs(bad)
-      }
-    } catch {}
-    setValidating(false)
-  }
-
-  // Auto-search on mount
-  useEffect(() => {
-    if (initialQuery && initialSources.length > 0) {
-      handleSearch(initialQuery, initialSources, initialType)
-    }
-  }, [])
-
-  const handlePlay = (song: Song) => setCurrentSong(song)
+  }, [setSearchParams, autoFixSongs])
 
   const handleDownload = async (song: Song) => {
     try {
@@ -128,7 +198,7 @@ export default function SearchPage() {
           name: song.name, artist: song.artist,
           album: song.album, cover: song.cover,
           duration: song.duration,
-          withCover: true, withLyrics: true,
+          withCover: false, withLyrics: false,
         }),
       })
       const data = await res.json()
@@ -140,42 +210,6 @@ export default function SearchPage() {
     }
   }
 
-  const handleBatchRetry = async () => {
-    if (invalidSongs.size === 0) return
-    const badSongs = songs.filter(s => invalidSongs.has(`${s.source}:${s.id}`))
-    try {
-      const res = await fetch(`${apiBase}/retry`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ songs: badSongs.map(s => ({ id: s.id, source: s.source, name: s.name, artist: s.artist })) }),
-      })
-      const data = await res.json()
-      if (data.results?.length > 0) {
-        // Add alt sources to songs list
-        const altMap: Record<string, Song> = {}
-        data.results.forEach((r: any) => {
-          if (r.altId && r.altSource) {
-            altMap[`${r.source}:${r.id}`] = {
-              id: r.altId, source: r.altSource,
-              name: r.altName || badSongs.find(s => s.id === r.id)?.name || '',
-              artist: r.altArtist || '',
-              album: '', duration: 0, cover: '',
-            }
-          }
-        })
-        setSongs(prev => {
-          const keys = new Set(prev.map(s => `${s.source}:${s.id}`))
-          const additions = Object.values(altMap).filter(s => !keys.has(`${s.source}:${s.id}`))
-          return [...prev, ...additions]
-        })
-        setInvalidSongs(new Set())
-        alert(`已找到 ${data.results.length} 个替换音源`)
-      } else {
-        alert('未找到可替换的音源')
-      }
-    } catch {}
-  }
-
   const handlePlaylistSelect = async (pl: Playlist) => {
     setLoading(true)
     setError('')
@@ -185,10 +219,12 @@ export default function SearchPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       if (data.songs) {
-        setSongs(data.songs)
-        setDetailSongs(data.songs)
+        const fixed = await autoFixSongs(data.songs)
+        setSongs(fixed)
+        setDetailSongs(fixed)
         setResultType('detail')
         setPlaylists([pl])
+        persistResults({ songs: fixed, playlists: [pl], resultType: 'detail', detailSongs: fixed })
       }
     } catch (err: any) {
       setError(err.message || '获取详情失败')
@@ -197,15 +233,13 @@ export default function SearchPage() {
     }
   }
 
-  const toggleSelect = (key: string) => {
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key); else next.add(key)
-      return next
-    })
-  }
-
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  // Auto-search on mount if no restored results
+  useEffect(() => {
+    if (initialQuery && initialSources.length > 0 && songs.length === 0 && playlists.length === 0) {
+      handleSearch(initialQuery, initialSources, initialType)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="page search-page">
@@ -214,16 +248,7 @@ export default function SearchPage() {
       {error && <div className="error-msg">{error}</div>}
       {loading && <div className="loading">搜索中...</div>}
 
-      {!loading && invalidSongs.size > 0 && resultType === 'song' && (
-        <div className="retry-bar">
-          <span>{invalidSongs.size} 个音源不可用</span>
-          <button className="btn-primary" onClick={handleBatchRetry} disabled={validating}>
-            批量换源
-          </button>
-        </div>
-      )}
-
-      {!loading && !error && resultType === 'detail' && playlists.length > 0 && (
+      {!loading && resultType === 'detail' && playlists.length > 0 && (
         <div className="detail-header">
           <h2>{playlists[0].name}</h2>
           {playlists[0].creator && <span className="detail-creator">{playlists[0].creator}</span>}
@@ -241,12 +266,15 @@ export default function SearchPage() {
           onPlay={handlePlay}
           onDownload={handleDownload}
           selected={selected}
-          onToggleSelect={toggleSelect}
-          invalidSources={invalidSongs}
+          onToggleSelect={(key) => {
+            setSelected(prev => {
+              const next = new Set(prev)
+              if (next.has(key)) next.delete(key); else next.add(key)
+              return next
+            })
+          }}
         />
       )}
-
-      <PlayerBar currentSong={currentSong} />
     </div>
   )
 }

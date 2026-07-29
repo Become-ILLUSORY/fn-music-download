@@ -1,54 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { usePlayer } from '../hooks/usePlayer'
 
-interface Song {
-  id: string
-  name: string
-  artist: string
-  source: string
-  cover?: string
-}
-
-interface PlayerBarProps {
-  currentSong?: Song | null
-  onNext?: () => void
-  onPrev?: () => void
-}
-
-export default function PlayerBar({ currentSong, onNext, onPrev }: PlayerBarProps) {
-  const [playing, setPlaying] = useState(false)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-
-  useEffect(() => {
-    if (!currentSong) {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
-      }
-      setPlaying(false)
-      return
-    }
-    // Get stream URL
-    const url = `/app/music-dl/api/stream?id=${currentSong.id}&source=${currentSong.source}`
-    if (audioRef.current) {
-      audioRef.current.src = url
-      audioRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
-    } else {
-      const audio = new Audio(url)
-      audioRef.current = audio
-      audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false))
-      audio.onended = () => setPlaying(false)
-    }
-  }, [currentSong])
-
-  const togglePlay = () => {
-    if (!audioRef.current) return
-    if (playing) {
-      audioRef.current.pause()
-      setPlaying(false)
-    } else {
-      audioRef.current.play().then(() => setPlaying(true)).catch(() => {})
-    }
-  }
+export default function PlayerBar() {
+  const { currentSong, playing, togglePlay, stop } = usePlayer()
 
   if (!currentSong) return null
 
@@ -64,11 +17,10 @@ export default function PlayerBar({ currentSong, onNext, onPrev }: PlayerBarProp
         </div>
       </div>
       <div className="player-controls">
-        {onPrev && <button className="btn-icon" onClick={onPrev}>⏮</button>}
-        <button className="btn-icon btn-play" onClick={togglePlay}>
+        <button className="btn-circle btn-play" onClick={togglePlay}>
           {playing ? '⏸' : '▶'}
         </button>
-        {onNext && <button className="btn-icon" onClick={onNext}>⏭</button>}
+        <button className="btn-circle btn-dl" onClick={stop}>⏹</button>
       </div>
     </div>
   )

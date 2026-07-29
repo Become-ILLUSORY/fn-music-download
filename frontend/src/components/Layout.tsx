@@ -1,4 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import PlayerBar from './PlayerBar'
 
 const tabs = [
   { key: 'search', label: '搜索', icon: '🔍' },
@@ -48,6 +49,8 @@ export default function Layout() {
           </button>
         ))}
       </nav>
+
+      <PlayerBar />
     </div>
   )
 }

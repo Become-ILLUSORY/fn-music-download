@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { usePlayer } from '../hooks/usePlayer'
 import SongList from '../components/SongList'
-import PlayerBar from '../components/PlayerBar'
 
 interface Song {
   id: string
@@ -24,11 +24,11 @@ const apiBase = '/app/music-dl/api'
 export default function LocalPage() {
   const [songs, setSongs] = useState<LocalSong[]>([])
   const [loading, setLoading] = useState(false)
-  const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [dir, setDir] = useState('')
   const [renaming, setRenaming] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const player = usePlayer()
 
   useEffect(() => {
     scanLocal()
@@ -98,34 +98,6 @@ export default function LocalPage() {
     setRenameValue(song.name)
   }
 
-  // Extend SongList with action buttons for each local song
-  const songsWithActions = songs.map(s => ({
-    ...s,
-    _actions: (
-      <div style={{ display: 'flex', gap: 4 }}>
-        {renaming === s.path ? (
-          <>
-            <input
-              type="text"
-              value={renameValue}
-              onChange={e => setRenameValue(e.target.value)}
-              className="rename-input"
-              autoFocus
-              onKeyDown={e => { if (e.key === 'Enter') handleRename(s); if (e.key === 'Escape') setRenaming(null) }}
-            />
-            <button className="btn-circle btn-dl" onClick={() => handleRename(s)} title="确认">✓</button>
-            <button className="btn-circle btn-dl" onClick={() => setRenaming(null)} title="取消">✕</button>
-          </>
-        ) : (
-          <>
-            <button className="btn-circle btn-dl" onClick={() => startRename(s)} title="重命名">✏️</button>
-            <button className="btn-circle btn-delete" onClick={() => handleDelete(s)} title="删除">🗑️</button>
-          </>
-        )}
-      </div>
-    ),
-  })) as any[]
-
   return (
     <div className="page local-page">
       <div className="page-header">
@@ -156,7 +128,7 @@ export default function LocalPage() {
                 </div>
                 <div className="song-info">
                   <h3 className="song-name">
-                    <button className="btn-link" onClick={() => setCurrentSong(s)} title="播放">
+                    <button className="btn-link" onClick={() => player.play(s)} title="播放">
                       {s.name}.{s.ext}
                     </button>
                   </h3>
@@ -188,7 +160,7 @@ export default function LocalPage() {
                     </>
                   ) : (
                     <>
-                      <button className="btn-circle btn-play" onClick={() => setCurrentSong(s)} title="播放">▶</button>
+                      <button className="btn-circle btn-play" onClick={() => player.play(s)} title="播放">▶</button>
                       <button className="btn-circle btn-dl" onClick={() => startRename(s)} title="重命名">✏️</button>
                       <button className="btn-circle btn-delete" onClick={() => handleDelete(s)} title="删除">🗑️</button>
                     </>
@@ -204,8 +176,6 @@ export default function LocalPage() {
           <p className="hint">下载目录: {dir}</p>
         </div>
       )}
-
-      <PlayerBar currentSong={currentSong} />
     </div>
   )
 }

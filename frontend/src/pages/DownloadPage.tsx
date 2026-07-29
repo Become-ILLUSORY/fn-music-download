@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import PlayerBar from '../components/PlayerBar'
+import { usePlayer } from '../hooks/usePlayer'
 
 interface DownloadTask {
   id: string
@@ -9,7 +9,7 @@ interface DownloadTask {
   artist: string
   album: string
   progress: number
-  status: string // queued, downloading, completed, failed
+  status: string
   savedPath?: string
   filename?: string
   fileSize?: number
@@ -24,10 +24,9 @@ export default function DownloadPage() {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active')
   const [tasks, setTasks] = useState<DownloadTask[]>([])
   const [completed, setCompleted] = useState<any[]>([])
-  const [currentSong, setCurrentSong] = useState<any>(null)
   const [pollId, setPollId] = useState<number>(0)
+  const player = usePlayer()
 
-  // Poll active tasks
   useEffect(() => {
     const fetchTasks = () => {
       fetch(`${apiBase}/download/tasks`)
@@ -43,7 +42,6 @@ export default function DownloadPage() {
     return () => clearInterval(id)
   }, [])
 
-  // Fetch completed on mount and when tab switches
   useEffect(() => {
     if (activeTab === 'completed') {
       fetch(`${apiBase}/download/completed`)
@@ -62,7 +60,7 @@ export default function DownloadPage() {
   }
 
   const playFile = (path: string) => {
-    setCurrentSong({ id: path, source: 'local', name: path.split('/').pop() || '', artist: '' })
+    player.play({ id: path, source: 'local', name: path.split('/').pop() || '', artist: '' })
   }
 
   const deleteFile = (path: string) => {
@@ -150,8 +148,6 @@ export default function DownloadPage() {
           )}
         </div>
       )}
-
-      <PlayerBar currentSong={currentSong} />
     </div>
   )
 }
