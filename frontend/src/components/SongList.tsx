@@ -16,11 +16,12 @@ interface SongListProps {
   songs: Song[]
   onPlay?: (song: Song) => void
   onDownload?: (song: Song) => void
+  invalidSources?: Set<string>
   selected?: Set<string>
   onToggleSelect?: (key: string) => void
 }
 
-export default function SongList({ songs, onPlay, onDownload, selected, onToggleSelect }: SongListProps) {
+export default function SongList({ songs, onPlay, onDownload, invalidSources, selected, onToggleSelect }: SongListProps) {
   if (songs.length === 0) return null
 
   const fmtDuration = (sec: number) => {
@@ -36,6 +37,7 @@ export default function SongList({ songs, onPlay, onDownload, selected, onToggle
   }
 
   const songKey = (s: Song) => `${s.source}:${s.id}`
+  const isInvalid = (s: Song) => invalidSources?.has(songKey(s))
 
   const sourceLabel = (s: string) => {
     const map: Record<string, string> = {
@@ -58,8 +60,9 @@ export default function SongList({ songs, onPlay, onDownload, selected, onToggle
 
       <ul className="result-list">
         {songs.map(song => {
+          const bad = isInvalid(song)
           return (
-            <li key={songKey(song)} className="song-card">
+            <li key={songKey(song)} className={`song-card ${bad ? 'invalid' : ''}`}>
               {selected && (
                 <div className="checkbox-wrapper">
                   <input
@@ -79,6 +82,7 @@ export default function SongList({ songs, onPlay, onDownload, selected, onToggle
               <div className="song-info">
                 <h3 className="song-name">
                   <span className="song-name-text" title={song.name}>{song.name}</span>
+                  {bad && <span className="invalid-badge">失效</span>}
                 </h3>
                 <div className="artist-line">
                   <span className="artist-icon">👤</span>
@@ -91,7 +95,9 @@ export default function SongList({ songs, onPlay, onDownload, selected, onToggle
                   )}
                 </div>
                 <div className="tags">
-                  <span className="tag tag-src">{sourceLabel(song.source)}</span>
+                  <span className={`tag ${bad ? 'tag-fail' : 'tag-src'}`}>
+                    {bad ? '失效' : sourceLabel(song.source)}
+                  </span>
                   <span className="tag">{fmtDuration(song.duration)}</span>
                   {song.size ? <span className="tag tag-size">{fmtSize(song.size)}</span> : null}
                 </div>
