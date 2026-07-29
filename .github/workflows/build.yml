@@ -106,25 +106,7 @@ jobs:
 
     - name: Generate icons
       working-directory: ./package
-      run: |
-        python3 -c "
-import struct, zlib
-def png(w, h, fn):
-    def c(t, d):
-        return struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xFFFFFFFF)
-    raw = b''
-    for _ in range(h):
-        raw += b'\\x00' + bytes([124, 77, 255]) * w
-    with open(fn, 'wb') as f:
-        f.write(b'\\x89PNG\\r\\n\\x1a\\n' + c(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)) + c(b'IDAT', zlib.compress(raw)) + c(b'IEND', b''))
-png(64, 64, 'ICON.PNG')
-png(256, 256, 'ICON_256.PNG')
-import os
-os.makedirs('app/ui/images', exist_ok=True)
-png(64, 64, 'app/ui/images/icon_64.png')
-png(256, 256, 'app/ui/images/icon_256.png')
-print('Icons generated')
-"
+      run: python3 ../scripts/generate-icons.py
 
     - name: Make scripts executable
       working-directory: ./package

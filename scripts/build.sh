@@ -55,7 +55,7 @@ cp -r "$FRONTEND_DIR/dist/"* "$PACKAGE_SERVER_DIR/public/"
 # 4. Generate icons
 echo ""
 echo "--- Generating icons ---"
-bash "$SCRIPT_DIR/generate-icons.sh"
+python3 "$SCRIPT_DIR/generate-icons.py"
 
 # 5. Set permissions
 chmod 755 "$PACKAGE_SERVER_DIR/music-dl"
