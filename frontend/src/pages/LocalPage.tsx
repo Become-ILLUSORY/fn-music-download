@@ -160,7 +160,9 @@ export default function LocalPage() {
                     </>
                   ) : (
                     <>
-                      <button className="btn-circle btn-play" onClick={() => player.play(s)} title="播放">▶</button>
+                      <button className="btn-action btn-play" onClick={() => player.play(s)} title="播放">
+                        <svg viewBox="0 0 24 24"><polygon points="7,5 19,12 7,19" fill="currentColor"/></svg>
+                      </button>
                       <button className="btn-circle btn-dl" onClick={() => startRename(s)} title="重命名">✏️</button>
                       <button className="btn-circle btn-delete" onClick={() => handleDelete(s)} title="删除">🗑️</button>
                     </>

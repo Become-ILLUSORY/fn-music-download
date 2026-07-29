@@ -104,13 +104,13 @@ export default function SongList({ songs, onPlay, onDownload, invalidSources, se
               </div>
               <div className="actions">
                 {onPlay && (
-                  <button className="btn-circle btn-play" onClick={() => onPlay(song)} title="试听">
-                    ▶
+                  <button className="btn-action btn-play" onClick={() => onPlay(song)} title="试听">
+                    <svg viewBox="0 0 24 24"><polygon points="7,5 19,12 7,19" fill="currentColor"/></svg>
                   </button>
                 )}
                 {onDownload && (
-                  <button className="btn-circle btn-dl" onClick={() => onDownload(song)} title="下载">
-                    ⬇
+                  <button className="btn-action btn-dl" onClick={() => onDownload(song)} title="下载">
+                    <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </button>
                 )}
               </div>
