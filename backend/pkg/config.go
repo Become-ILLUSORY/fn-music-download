@@ -78,6 +78,16 @@ func ensureConfigDB() error {
 	return configInitErr
 }
 
+// EnsureConfigDB is an exported wrapper that reuses the existing unexported ensureConfigDB.
+func EnsureConfigDB() error {
+	return ensureConfigDB()
+}
+
+// GetConfigDB returns the config database instance.
+func GetConfigDB() *gorm.DB {
+	return configDB
+}
+
 func defaultWebSettings() WebSettings {
 	return WebSettings{
 		DownloadDir:              DefaultWebDownloadDir,

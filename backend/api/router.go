@@ -2,10 +2,8 @@ package api
 
 import (
 	"embed"
-	"html/template"
 	"io/fs"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 

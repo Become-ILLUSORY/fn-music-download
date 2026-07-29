@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"fn-music-dl/pkg"
+
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -20,24 +21,24 @@ type Collection struct {
 	Creator     string    `json:"creator" gorm:"size:256"`
 	Source      string    `json:"source" gorm:"size:64"`
 	ExternalID  string    `json:"externalId" gorm:"size:256"`
-	Kind        string    `json:"kind" gorm:"size:32;default:manual"` // manual or imported
+	Kind        string    `json:"kind" gorm:"size:32;default:manual"`
 	CreatedAt   time.Time `json:"createdAt" gorm:"autoCreateTime"`
 	UpdatedAt   time.Time `json:"updatedAt" gorm:"autoUpdateTime"`
 }
 
 // CollectionSong is a song entry within a collection.
 type CollectionSong struct {
-	ID          uint      `json:"id" gorm:"primaryKey"`
-	CollectionID string   `json:"collectionId" gorm:"size:128;not null;index"`
-	SongID      string    `json:"songId" gorm:"size:256;not null"`
-	Source      string    `json:"source" gorm:"size:64;not null"`
-	Name        string    `json:"name" gorm:"size:512"`
-	Artist      string    `json:"artist" gorm:"size:512"`
-	Album       string    `json:"album" gorm:"size:512"`
-	Cover       string    `json:"cover" gorm:"size:512"`
-	Duration    int       `json:"duration"`
-	Order       int       `json:"order"`
-	AddedAt     time.Time `json:"addedAt" gorm:"autoCreateTime"`
+	ID           uint      `json:"id" gorm:"primaryKey"`
+	CollectionID string    `json:"collectionId" gorm:"size:128;not null;index"`
+	SongID       string    `json:"songId" gorm:"size:256;not null"`
+	Source       string    `json:"source" gorm:"size:64;not null"`
+	Name         string    `json:"name" gorm:"size:512"`
+	Artist       string    `json:"artist" gorm:"size:512"`
+	Album        string    `json:"album" gorm:"size:512"`
+	Cover        string    `json:"cover" gorm:"size:512"`
+	Duration     int       `json:"duration"`
+	Order        int       `json:"order"`
+	AddedAt      time.Time `json:"addedAt" gorm:"autoCreateTime"`
 }
 
 var collectionDB *gorm.DB
@@ -47,10 +48,10 @@ func ensureCollectionDB() error {
 	if collectionInit {
 		return nil
 	}
-	if err := ensureConfigDB(); err != nil {
+	if err := pkg.EnsureConfigDB(); err != nil {
 		return err
 	}
-	collectionDB = configDB
+	collectionDB = pkg.GetConfigDB()
 	collectionInit = true
 	return collectionDB.AutoMigrate(&Collection{}, &CollectionSong{})
 }

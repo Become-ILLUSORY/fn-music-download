@@ -233,7 +233,7 @@ func FetchBytesWithMime(urlStr string, source string) ([]byte, string, error) {
 		if fetch.ContentLength > 0 && fetch.ContentLength <= int64(1<<(strconv.IntSize-1)-1) {
 			buf.Grow(int(fetch.ContentLength))
 		}
-		if err := fetch.WriteTo(&buf); err != nil {
+		if _, err := fetch.WriteTo(&buf); err != nil {
 			return nil, "", err
 		}
 		return buf.Bytes(), fetch.ContentType, nil
@@ -342,11 +342,15 @@ func NewSourceRangeFetch(urlStr string, source string, rangeHeader string) (*Sou
 }
 
 // WriteTo writes the full range content to the writer.
-func (f *SourceRangeFetch) WriteTo(w io.Writer) error {
+func (f *SourceRangeFetch) WriteTo(w io.Writer) (int64, error) {
 	if f == nil {
-		return errors.New("nil range fetch")
+		return 0, errors.New("nil range fetch")
 	}
-	return writeParallelRange(w, f.URL, f.Source, f.Start, f.End)
+	n, err := writeParallelRange(w, f.URL, f.Source, f.Start, f.End)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
 }
 
 type rangeChunkJob struct {
@@ -366,9 +370,9 @@ const firstChunkSize int64 = 32 * 1024
 const chunkSize int64 = 256 * 1024
 const maxConcurrentChunks = 16
 
-func writeParallelRange(w io.Writer, urlStr, source string, start, end int64) error {
+func writeParallelRange(w io.Writer, urlStr, source string, start, end int64) (int64, error) {
 	if end < start {
-		return nil
+		return 0, nil
 	}
 	var jobs []rangeChunkJob
 	firstEnd := start + firstChunkSize - 1
@@ -397,11 +401,12 @@ func writeParallelRange(w io.Writer, urlStr, source string, start, end int64) er
 	}
 
 	next := 0
+	var total int64
 	pending := make(map[int]rangeChunkResult)
 	for next < len(jobs) {
 		result := <-results
 		if result.err != nil {
-			return result.err
+			return total, result.err
 		}
 		pending[result.index] = result
 		for {
@@ -409,8 +414,10 @@ func writeParallelRange(w io.Writer, urlStr, source string, start, end int64) er
 			if !ok {
 				break
 			}
-			if _, err := w.Write(ready.data); err != nil {
-				return err
+			n, err := w.Write(ready.data)
+			total += int64(n)
+			if err != nil {
+				return total, err
 			}
 			if flusher, ok := w.(http.Flusher); ok {
 				flusher.Flush()
@@ -419,6 +426,7 @@ func writeParallelRange(w io.Writer, urlStr, source string, start, end int64) er
 			next++
 		}
 	}
+	return total, nil
 	return nil
 }
 
