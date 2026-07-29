@@ -96,25 +96,6 @@ export default function SettingsPage() {
       <section className="settings-section">
         <h3>下载设置</h3>
         <div className="setting-item">
-          <label>下载目录</label>
-          <input
-            type="text"
-            value={settings.downloadDir}
-            onChange={e => setSettings({ ...settings, downloadDir: e.target.value })}
-            className="input"
-          />
-        </div>
-        <div className="setting-item">
-          <label>文件名模板</label>
-          <input
-            type="text"
-            value={settings.downloadFilenameTemplate}
-            onChange={e => setSettings({ ...settings, downloadFilenameTemplate: e.target.value })}
-            className="input"
-          />
-          <span className="hint">{`{name} {artist} {album} {source} {id} {ext}`}</span>
-        </div>
-        <div className="setting-item">
           <label>
             <input
               type="checkbox"

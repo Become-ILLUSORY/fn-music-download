@@ -15,7 +15,7 @@ import (
 const (
 	ConfigDBFile                    = "data/settings.db"
 	DefaultWebDownloadDir           = "data/downloads"
-	DefaultDownloadFilenameTemplate = "{artist} - {name}"
+	DefaultDownloadFilenameTemplate = "{name} - {artist}"
 	DefaultWebPageSize              = 200
 	DefaultCLIPageSize              = 20
 	DefaultDownloadConcurrency      = 3
