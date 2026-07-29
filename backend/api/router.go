@@ -26,15 +26,9 @@ func RegisterRoutes(r *gin.Engine) {
 		api.POST("/download", handleDownload)
 		api.GET("/stream", handleStream)
 
-		api.GET("/playlists", handleGetPlaylists)
-		api.POST("/playlists", handleCreatePlaylist)
-		api.GET("/playlists/:id", handleGetPlaylistSongs)
-		api.POST("/playlists/:id/songs", handleAddSongToPlaylist)
-		api.DELETE("/playlists/:id/songs", handleRemoveSongFromPlaylist)
-		api.DELETE("/playlists/:id", handleDeletePlaylist)
-
 		api.GET("/local/music", handleLocalMusic)
 		api.POST("/local/upload", handleLocalUpload)
+		api.POST("/local/rename", handleLocalRename)
 		api.DELETE("/local/music", handleLocalDelete)
 		api.GET("/local/cover", handleLocalCover)
 

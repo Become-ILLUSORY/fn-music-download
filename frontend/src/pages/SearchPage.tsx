@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useCallback, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import SongList from '../components/SongList'
 import PlaylistGrid from '../components/PlaylistGrid'
@@ -28,9 +28,10 @@ interface Playlist {
   link?: string
 }
 
+const apiBase = '/app/music-dl/api'
+
 export default function SearchPage() {
-  const { query: urlQuery } = useParams()
-  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [songs, setSongs] = useState<Song[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
@@ -38,22 +39,21 @@ export default function SearchPage() {
   const [error, setError] = useState('')
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [lastQuery, setLastQuery] = useState('')
-  const [lastSources, setLastSources] = useState<string[]>([])
-  const [lastType, setLastType] = useState('song')
   const [detailSongs, setDetailSongs] = useState<Song[]>([])
 
-  const apiBase = '/app/music-dl/api'
+  // Restore search from URL params
+  const initialQuery = searchParams.get('q') || ''
+  const initialType = searchParams.get('type') || 'song'
+  const initialSources = searchParams.get('sources')?.split(',') || []
 
   const handleSearch = useCallback(async (query: string, sources: string[], searchType: string) => {
     setLoading(true)
     setError('')
     setDetailSongs([])
     setCurrentSong(null)
-    setLastQuery(query)
-    setLastSources(sources)
-    setLastType(searchType)
-    navigate(`/search/${encodeURIComponent(query)}`, { replace: true })
+
+    // Save to URL params for persistence
+    setSearchParams({ q: query, type: searchType, sources: sources.join(',') }, { replace: true })
 
     try {
       const qs = new URLSearchParams({ q: query, type: searchType, sources: sources.join(',') })
@@ -84,7 +84,14 @@ export default function SearchPage() {
     } finally {
       setLoading(false)
     }
-  }, [navigate])
+  }, [setSearchParams])
+
+  // Auto-search on mount if URL has query
+  useEffect(() => {
+    if (initialQuery && initialSources.length > 0) {
+      handleSearch(initialQuery, initialSources, initialType)
+    }
+  }, [])
 
   const handlePlay = (song: Song) => {
     setCurrentSong(song)
@@ -134,7 +141,7 @@ export default function SearchPage() {
         setPlaylists([pl])
       }
     } catch (err: any) {
-      setError(err.message || '获取歌单详情失败')
+      setError(err.message || '获取详情失败')
     } finally {
       setLoading(false)
     }
@@ -151,7 +158,12 @@ export default function SearchPage() {
 
   return (
     <div className="page search-page">
-      <SearchBar onSearch={handleSearch} loading={loading} searchType={lastType} />
+      <SearchBar
+        onSearch={handleSearch}
+        loading={loading}
+        initialQuery={initialQuery}
+        searchType={initialType}
+      />
 
       {error && <div className="error-msg">{error}</div>}
 

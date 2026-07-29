@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 
 const tabs = [
   { key: 'search', label: '搜索', icon: '🔍' },
-  { key: 'playlist', label: '歌单', icon: '📋' },
   { key: 'local', label: '本地', icon: '💿' },
   { key: 'settings', label: '设置', icon: '⚙️' },
 ]
@@ -15,7 +13,6 @@ export default function Layout() {
 
   return (
     <div className="app-layout">
-      {/* Desktop sidebar */}
       <nav className="desktop-sidebar">
         <div className="sidebar-header">
           <h1>🎵 音乐下载</h1>
@@ -34,12 +31,10 @@ export default function Layout() {
         </div>
       </nav>
 
-      {/* Main content */}
       <main className="main-content">
         <Outlet />
       </main>
 
-      {/* Mobile bottom nav */}
       <nav className="mobile-bottom-nav">
         {tabs.map(tab => (
           <button

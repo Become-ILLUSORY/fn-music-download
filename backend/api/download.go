@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -129,6 +131,20 @@ func handleStream(c *gin.Context) {
 
 	if id == "" || source == "" {
 		c.Status(http.StatusBadRequest)
+		return
+	}
+
+	// Local file streaming
+	if source == "local" {
+		path := id // for local source, id is the file path
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
+			return
+		}
+		ext := strings.TrimPrefix(filepath.Ext(path), ".")
+		ct := pkg.AudioMimeByExt(ext)
+		c.Header("Content-Type", ct)
+		c.File(path)
 		return
 	}
 

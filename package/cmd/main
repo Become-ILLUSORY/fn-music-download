@@ -85,6 +85,16 @@ start_app() {
     export SOCKET_PATH="$SOCKET_PATH"
     export MUSIC_DL_CONFIG_DB="${TRIM_PKGVAR}/settings.db"
 
+    # Pass wizard download dir if set during install
+    if [ -n "$wizard_download_dir" ]; then
+        export MUSIC_DL_DOWNLOAD_DIR="$wizard_download_dir"
+    fi
+
+    # Also try to read from config env file
+    if [ -f "${TRIM_PKGETC}/config.env" ]; then
+        . "${TRIM_PKGETC}/config.env"
+    fi
+
     # Change to the app root directory
     cd "$TRIM_APPDEST" 2>>"$LOG_FILE" || {
         local msg="Failed to cd to $TRIM_APPDEST"

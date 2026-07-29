@@ -130,6 +130,49 @@ func handleLocalDelete(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
 
+func handleLocalRename(c *gin.Context) {
+	var req struct {
+		Path    string `json:"path"`
+		NewName string `json:"newName"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+	req.Path = strings.TrimSpace(req.Path)
+	req.NewName = strings.TrimSpace(req.NewName)
+	if req.Path == "" || req.NewName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "path and newName are required"})
+		return
+	}
+
+	settings := pkg.GetWebSettings()
+	dlDir, _ := filepath.Abs(settings.DownloadDir)
+	absPath, _ := filepath.Abs(req.Path)
+
+	// Safety check
+	if !strings.HasPrefix(absPath, dlDir) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "cannot rename file outside download directory"})
+		return
+	}
+
+	// New path: same directory, new name + same extension
+	ext := filepath.Ext(absPath)
+	newAbsPath := filepath.Join(filepath.Dir(absPath), req.NewName+ext)
+
+	// Check target doesn't exist
+	if _, err := os.Stat(newAbsPath); err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "target filename already exists"})
+		return
+	}
+
+	if err := os.Rename(absPath, newAbsPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "renamed", "path": newAbsPath})
+}
+
 func handleLocalCover(c *gin.Context) {
 	path := strings.TrimSpace(c.Query("path"))
 	if path == "" {

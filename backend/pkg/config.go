@@ -89,8 +89,12 @@ func GetConfigDB() *gorm.DB {
 }
 
 func defaultWebSettings() WebSettings {
+	dir := DefaultWebDownloadDir
+	if envDir := strings.TrimSpace(os.Getenv("MUSIC_DL_DOWNLOAD_DIR")); envDir != "" {
+		dir = envDir
+	}
 	return WebSettings{
-		DownloadDir:              DefaultWebDownloadDir,
+		DownloadDir:              dir,
 		DownloadFilenameTemplate: DefaultDownloadFilenameTemplate,
 		EmbedDownload:            true,
 		WebPageSize:              DefaultWebPageSize,
