@@ -1,0 +1,3 @@
+#!/bin/bash
+# config_init - runs before config change is applied
+exit 0

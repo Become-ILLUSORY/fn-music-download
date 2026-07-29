@@ -1,0 +1,5 @@
+#!/bin/bash
+# uninstall_callback - runs after app cleanup
+LOG_FILE="${TRIM_PKGVAR}/uninstall.log"
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Uninstall complete" >> "$LOG_FILE"
+exit 0

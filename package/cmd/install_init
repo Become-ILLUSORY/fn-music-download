@@ -1,0 +1,3 @@
+#!/bin/bash
+# install_init - runs before app files are installed
+exit 0
