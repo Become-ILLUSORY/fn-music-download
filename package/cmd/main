@@ -1,5 +1,14 @@
+#!/bin/bash
 # Main lifecycle script for fn-music-dl
 # Handles start/stop/status commands from FNOS
+
+# Defensive: use sane defaults when env vars are unset (e.g. during manual testing)
+: "${TRIM_PKGVAR:=/tmp/music-dl-var}"
+: "${TRIM_APPDEST:=/var/apps/music-dl/target}"
+: "${TRIM_TEMP_LOGFILE:=/tmp/music-dl-temp.log}"
+
+# Ensure log directory exists
+mkdir -p "$TRIM_PKGVAR" 2>/dev/null || true
 
 PID_FILE="${TRIM_PKGVAR}/app.pid"
 LOG_FILE="${TRIM_PKGVAR}/app.log"
@@ -8,6 +17,10 @@ SOCKET_PATH="${TRIM_APPDEST}/app.sock"
 
 log_msg() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
+
+write_error() {
+    echo "$1" > "$TRIM_TEMP_LOGFILE"
 }
 
 check_process() {
@@ -32,71 +45,100 @@ start_app() {
         return 0
     fi
 
+    # Init log file
+    : > "$LOG_FILE" 2>/dev/null || LOG_FILE="/tmp/music-dl-app.log"
+    : > "$LOG_FILE" 2>/dev/null || true
+
     log_msg "Starting fn-music-dl..."
-    echo "--- ENV ---" > "$LOG_FILE"
+    echo "--- ENV ---" >> "$LOG_FILE"
     echo "TRIM_APPDEST=$TRIM_APPDEST" >> "$LOG_FILE"
     echo "TRIM_PKGVAR=$TRIM_PKGVAR" >> "$LOG_FILE"
     echo "TRIM_DATA_SHARE_PATHS=$TRIM_DATA_SHARE_PATHS" >> "$LOG_FILE"
     echo "APP_BIN=$APP_BIN" >> "$LOG_FILE"
     echo "SOCKET_PATH=$SOCKET_PATH" >> "$LOG_FILE"
+    echo "PWD=$(pwd)" >> "$LOG_FILE"
     echo "--- CHECK ---" >> "$LOG_FILE"
 
     if [ ! -f "$APP_BIN" ]; then
-        echo "Binary not found: $APP_BIN" > "$TRIM_TEMP_LOGFILE"
-        ls -la "$(dirname "$APP_BIN" 2>/dev/null)" >> "$TRIM_TEMP_LOGFILE" 2>&1 || true
+        local msg="Binary not found at $APP_BIN"
+        echo "$msg" >> "$LOG_FILE"
+        write_error "$msg"
+        ls -la "$(dirname "$APP_BIN" 2>/dev/null)" >> "$LOG_FILE" 2>&1 || true
         return 1
     fi
 
-    if [ ! -x "$APP_BIN" ]; then
-        chmod +x "$APP_BIN" 2>/dev/null || true
-    fi
+    chmod +x "$APP_BIN" 2>/dev/null || true
 
     file "$APP_BIN" >> "$LOG_FILE" 2>&1 || true
 
-    # Set up environment
+    # Ensure server dir exists
+    local server_dir
+    server_dir="$(dirname "$APP_BIN")"
+    if [ ! -d "$server_dir" ]; then
+        local msg="server dir not found: $server_dir"
+        echo "$msg" >> "$LOG_FILE"
+        write_error "$msg"
+        return 1
+    fi
+
+    # Set up environment for the binary
     export SOCKET_PATH="$SOCKET_PATH"
     export MUSIC_DL_CONFIG_DB="${TRIM_PKGVAR}/settings.db"
 
-    # Run from TRIM_APPDEST so relative paths resolve relative to app root
+    # Change to the app root directory
     cd "$TRIM_APPDEST" 2>>"$LOG_FILE" || {
-        echo "Failed to cd to TRIM_APPDEST=$TRIM_APPDEST" > "$TRIM_TEMP_LOGFILE"
-        ls -la "$(dirname "$TRIM_APPDEST" 2>/dev/null)" >> "$TRIM_TEMP_LOGFILE" 2>&1 || true
+        local msg="Failed to cd to $TRIM_APPDEST"
+        echo "$msg" >> "$LOG_FILE"
+        write_error "$msg"
         return 1
     }
 
-    # Check for server dir
-    if [ ! -d "server" ]; then
-        echo "server/ directory not found under $TRIM_APPDEST" > "$TRIM_TEMP_LOGFILE"
-        ls -la . >> "$TRIM_TEMP_LOGFILE" 2>&1
-        return 1
-    fi
+    log_msg "Launching binary..."
+    log_msg "SOCKET_PATH=$SOCKET_PATH"
+    log_msg "MUSIC_DL_CONFIG_DB=$MUSIC_DL_CONFIG_DB"
 
-    # Run the binary
+    # Run the binary in background
     "$APP_BIN" >> "$LOG_FILE" 2>&1 &
     local pid=$!
     echo "$pid" > "$PID_FILE"
-    log_msg "Started with PID $pid"
+    log_msg "PID=$pid"
 
-    # Wait and verify
-    sleep 1
+    # Wait and verify still running
+    sleep 2
     if ! check_process "$pid"; then
-        echo "Binary failed to start" > "$TRIM_TEMP_LOGFILE"
-        echo "--- LAST 20 LOG LINES ---" >> "$TRIM_TEMP_LOGFILE"
-        tail -20 "$LOG_FILE" >> "$TRIM_TEMP_LOGFILE" 2>&1 || true
-        echo "--- PID_FILE ---" >> "$TRIM_TEMP_LOGFILE"
-        cat "$PID_FILE" >> "$TRIM_TEMP_LOGFILE" 2>&1 || true
+        local msg="Binary exited immediately"
+        echo "$msg" >> "$LOG_FILE"
+        write_error "$msg"
+        echo "--- LAST 30 LOG LINES ---" >> "$LOG_FILE"
+        tail -30 "$LOG_FILE" >> "$LOG_FILE" 2>&1 || true
         return 1
     fi
 
-    log_msg "Start OK"
+    # Verify socket was created (up to 5 seconds)
+    local waited=0
+    while [ $waited -lt 5 ]; do
+        if [ -S "$SOCKET_PATH" ]; then
+            log_msg "Socket ready at $SOCKET_PATH"
+            return 0
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+
+    # Process running but socket not ready yet — still OK
+    log_msg "Process running, waiting for socket..."
     return 0
+}
+
+cleanup() {
+    rm -f "$SOCKET_PATH" 2>/dev/null || true
 }
 
 stop_app() {
     log_msg "Stopping fn-music-dl..."
 
     if [ ! -f "$PID_FILE" ]; then
-        rm -f "$SOCKET_PATH"
+        cleanup
         return 0
     fi
 
@@ -104,7 +146,7 @@ stop_app() {
     pid="$(head -n 1 "$PID_FILE" | tr -d '[:space:]')"
     if [ -z "$pid" ] || ! check_process "$pid"; then
         rm -f "$PID_FILE"
-        rm -f "$SOCKET_PATH"
+        cleanup
         return 0
     fi
 
@@ -120,7 +162,7 @@ stop_app() {
     fi
 
     rm -f "$PID_FILE"
-    rm -f "$SOCKET_PATH"
+    cleanup
     log_msg "Stopped"
     return 0
 }
