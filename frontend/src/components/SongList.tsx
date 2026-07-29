@@ -39,87 +39,85 @@ export default function SongList({ songs, onPlay, onDownload, selected, onToggle
   const songKey = (s: Song) => `${s.source}:${s.id}`
   const isInvalid = (s: Song) => invalidSources?.has(songKey(s))
 
-  return (
-    <div className="song-list">
-      <table className="song-table">
-        <thead>
-          <tr>
-            {selected && <th className="col-check"></th>}
-            <th className="col-cover"></th>
-            <th className="col-name">歌曲</th>
-            <th className="col-artist">歌手</th>
-            <th className="col-album">专辑</th>
-            <th className="col-source">来源</th>
-            <th className="col-duration">时长</th>
-            <th className="col-actions">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {songs.map(song => {
-            const bad = isInvalid(song)
-            return (
-              <tr key={songKey(song)} className={`song-row ${bad ? 'invalid' : ''}`}>
-                {selected && (
-                  <td className="col-check">
-                    <input type="checkbox" checked={selected.has(songKey(song))} onChange={() => onToggleSelect?.(songKey(song))} />
-                  </td>
-                )}
-                <td className="col-cover">
-                  {song.cover ? <img src={song.cover} alt="" className="thumb" crossOrigin="anonymous" />
-                    : <div className="thumb-placeholder">🎵</div>}
-                </td>
-                <td className="col-name">
-                  {song.name}
-                  {bad && <span className="invalid-badge">无效</span>}
-                </td>
-                <td className="col-artist">{song.artist}</td>
-                <td className="col-album">{song.album}</td>
-                <td className="col-source">
-                  <span className={`source-badge ${bad ? 'bad' : ''}`}>{song.source}</span>
-                </td>
-                <td className="col-duration">{fmtDuration(song.duration)}</td>
-                <td className="col-actions">
-                  <div className="action-btns">
-                    {onPlay && <button className="btn-icon" onClick={() => onPlay(song)} title="试听">▶</button>}
-                    {onDownload && <button className="btn-icon" onClick={() => onDownload(song)} title="下载">⬇</button>}
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+  const sourceLabel = (s: string) => {
+    const map: Record<string, string> = {
+      netease: '网易云', qq: 'QQ', kugou: '酷狗', kuwo: '酷我',
+      migu: '咪咕', bilibili: 'B站', soda: '汽水', apple: 'Apple',
+      fivesing: '5sing', jamendo: 'Jamendo', joox: 'JOOX', qianqian: '千千', local: '本地',
+    }
+    return map[s] || s
+  }
 
-      <div className="song-cards">
+  return (
+    <div className="song-list-wrap">
+      {songs.length > 0 && (
+        <div className="list-header">
+          <div className="result-count">
+            找到 <span className="count">{songs.length}</span> 首歌曲
+          </div>
+        </div>
+      )}
+
+      <ul className="result-list">
         {songs.map(song => {
           const bad = isInvalid(song)
           return (
-            <div key={songKey(song)} className={`song-card ${bad ? 'invalid' : ''}`}>
-              <div className="card-body">
-                <div className="card-title">
-                  <span className="card-name">{song.name}</span>
+            <li key={songKey(song)} className={`song-card ${bad ? 'invalid' : ''}`}>
+              {selected && (
+                <div className="checkbox-wrapper">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(songKey(song))}
+                    onChange={() => onToggleSelect?.(songKey(song))}
+                  />
+                </div>
+              )}
+              <div className="cover-wrapper">
+                {song.cover ? (
+                  <img src={song.cover} alt="" className="cover-img" loading="lazy" crossOrigin="anonymous" />
+                ) : (
+                  <div className="cover-placeholder">🎵</div>
+                )}
+              </div>
+              <div className="song-info">
+                <h3 className="song-name" title={song.name}>
+                  {song.name}
                   {bad && <span className="invalid-badge">无效</span>}
+                </h3>
+                <div className="artist-line">
+                  <span className="artist-icon">👤</span>
+                  <span className="artist-text">{song.artist || '未知歌手'}</span>
+                  {song.album && (
+                    <>
+                      <span className="meta-separator">·</span>
+                      <span className="album-text" title={song.album}>{song.album}</span>
+                    </>
+                  )}
                 </div>
-                <div className="card-subtitle">
-                  <span className="card-artist">{song.artist}</span>
-                  <span className="card-sep"> · </span>
-                  <span className="card-album">{song.album || '未知'}</span>
-                  <span className="card-sep"> · </span>
-                  <span className={`source-badge ${bad ? 'bad' : ''}`}>{song.source}</span>
-                </div>
-                <div className="card-meta">
-                  <span>{fmtDuration(song.duration)}</span>
-                  {song.size ? <span>{fmtSize(song.size)}</span> : null}
+                <div className="tags">
+                  <span className={`tag ${bad ? 'tag-fail' : 'tag-src'}`}>
+                    {bad ? '失效' : sourceLabel(song.source)}
+                  </span>
+                  <span className="tag">{fmtDuration(song.duration)}</span>
+                  {song.size ? <span className="tag tag-size">{fmtSize(song.size)}</span> : null}
                 </div>
               </div>
-              <div className="card-actions">
-                {onPlay && <button className="btn-icon" onClick={() => onPlay(song)}>▶</button>}
-                {onDownload && <button className="btn-icon" onClick={() => onDownload(song)}>⬇</button>}
+              <div className="actions">
+                {onPlay && (
+                  <button className="btn-circle btn-play" onClick={() => onPlay(song)} title="试听">
+                    ▶
+                  </button>
+                )}
+                {onDownload && (
+                  <button className="btn-circle btn-dl" onClick={() => onDownload(song)} title="下载">
+                    ⬇
+                  </button>
+                )}
               </div>
-            </div>
+            </li>
           )
         })}
-      </div>
+      </ul>
     </div>
   )
 }

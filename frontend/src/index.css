@@ -127,69 +127,133 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 .source-chip input { margin: 0; }
 
-/* ========== Song List ========== */
-.song-table { width: 100%; border-collapse: collapse; }
-.song-table th {
-  padding: 8px 6px; text-align: left; font-weight: 500;
-  color: var(--text-secondary); border-bottom: 1px solid var(--border);
-  font-size: 11px; white-space: nowrap;
-}
-.song-row { transition: background 0.1s; }
-.song-row:hover { background: var(--bg-hover); }
-.song-row td { padding: 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-.col-cover { width: 36px; }
-.col-name { max-width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-artist { max-width: 20%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-album { max-width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-source { width: 60px; overflow: visible; }
-.col-duration { width: 50px; text-align: right; }
-.col-actions { width: 90px; white-space: nowrap; overflow: visible; }
-.col-size, .col-modified { white-space: nowrap; }
+/* ========== Song List (Card-based, dark theme) ========== */
+.song-list-wrap { width: 100%; }
 
-.thumb, .thumb-placeholder {
-  width: 32px; height: 32px; border-radius: var(--radius-sm); object-fit: cover;
+.list-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+  padding: 10px 14px; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: 12px;
+  flex-wrap: wrap;
 }
-.thumb-placeholder { background: var(--bg-card); display: flex; align-items: center; justify-content: center; font-size: 14px; }
-
-.source-badge {
-  display: inline-block; padding: 1px 5px; border-radius: var(--radius-sm);
-  background: var(--primary); color: white; font-size: 10px; font-weight: 500;
+.list-header .result-count {
+  color: var(--text); font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
 }
-.source-badge.bad { background: var(--danger); }
+.list-header .result-count .count { color: var(--primary); }
 
-.invalid-badge {
-  display: inline-block; margin-left: 4px; padding: 0 4px;
-  border-radius: var(--radius-sm); background: var(--danger);
-  color: white; font-size: 9px; font-weight: 600; vertical-align: middle;
+.result-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 12px;
 }
-.song-row.invalid td { opacity: 0.6; }
-.song-card.invalid { opacity: 0.6; }
 
-.action-btns { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
-.btn-icon {
-  width: 30px; height: 30px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 50%; background: var(--bg-card);
-  color: var(--text); font-size: 13px; transition: all 0.15s;
-}
-.btn-icon:hover { background: var(--primary); color: white; }
-
-.song-cards { display: none; flex-direction: column; gap: 6px; }
+/* ===== Song Card ===== */
 .song-card {
-  display: flex; gap: 8px; padding: 8px;
-  background: var(--bg-card); border-radius: var(--radius); align-items: center;
+  background: var(--bg-card); padding: 14px; border-radius: 14px;
+  display: flex; align-items: center;
+  transition: all 0.2s ease; position: relative;
+  border: 2px solid transparent;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
-.card-body { flex: 1; min-width: 0; }
-.card-title { display: flex; align-items: center; gap: 4px; font-weight: 500; font-size: 13px; }
-.card-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex-shrink: 1; }
-.card-subtitle { display: flex; align-items: center; gap: 2px; font-size: 11px; color: var(--text-secondary); overflow: hidden; white-space: nowrap; }
-.card-artist, .card-album { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex-shrink: 1; }
-.card-sep { flex-shrink: 0; }
-.card-meta { display: flex; gap: 6px; font-size: 11px; color: var(--text-secondary); flex-wrap: wrap; }
+.song-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(124, 77, 255, 0.15);
+  border-color: var(--primary);
+}
+.song-card.invalid { opacity: 0.55; }
+.song-card.invalid:hover { border-color: var(--danger); }
 
+/* Checkbox */
+.checkbox-wrapper {
+  display: flex; width: 30px; align-items: center;
+  justify-content: center; margin-right: 6px; flex-shrink: 0;
+}
+.checkbox-wrapper input {
+  width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;
+}
+
+/* Cover */
+.cover-wrapper {
+  width: 56px; height: 56px; border-radius: 10px;
+  overflow: hidden; flex-shrink: 0; margin-right: 14px;
+  background: var(--bg);
+}
+.cover-wrapper .cover-img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.cover-placeholder {
+  width: 100%; height: 100%; display: flex; align-items: center;
+  justify-content: center; font-size: 22px; background: var(--bg);
+}
+
+/* Song Info */
+.song-info { flex: 1; min-width: 0; margin-right: 10px; }
+.song-name {
+  margin: 0 0 5px; font-size: 15px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.artist-line {
+  font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 3px; line-height: 1.4; overflow: hidden;
+}
+.artist-icon { font-size: 10px; flex-shrink: 0; opacity: 0.7; }
+.artist-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.album-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta-separator { color: var(--border); flex-shrink: 0; }
+
+/* Tags */
+.tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.tag {
+  font-size: 10px; padding: 2px 7px; border-radius: 5px;
+  background: var(--bg); color: var(--text-secondary); font-weight: 600;
+  white-space: nowrap;
+}
+.tag-src { background: rgba(124, 77, 255, 0.15); color: var(--primary); }
+.tag-fail { background: rgba(255, 82, 82, 0.15); color: var(--danger); }
+.tag-size { background: rgba(0, 229, 255, 0.1); color: var(--accent); }
+
+/* Actions */
+.actions { display: flex; gap: 8px; flex-shrink: 0; }
+.btn-circle, .btn-icon {
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; font-size: 14px; padding: 0;
+}
+.btn-play {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: white; box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
+}
+.btn-play:hover { transform: scale(1.1); }
+.btn-dl {
+  background: var(--bg); color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.btn-dl:hover { border-color: var(--primary); color: var(--primary); }
+
+/* Invalid badge */
+.invalid-badge {
+  display: inline-block; padding: 1px 5px; border-radius: 4px;
+  background: var(--danger); color: white; font-size: 9px;
+  font-weight: 700; vertical-align: middle; line-height: 1.4;
+}
+
+/* Mobile */
 @media (max-width: 768px) {
-  .song-table { display: none; }
-  .song-cards { display: flex; }
+  .song-card { padding: 12px; border-radius: 12px; align-items: flex-start; }
+  .cover-wrapper { width: 48px; height: 48px; margin-right: 12px; border-radius: 8px; }
+  .song-name {
+    font-size: 14px; margin-bottom: 3px;
+    white-space: normal; word-break: break-word;
+  }
+  .artist-line { font-size: 11px; margin-bottom: 5px; }
+  .tags { flex-wrap: wrap; }
+  .tag { padding: 2px 5px; font-size: 9px; }
+  .actions { gap: 6px; }
+  .btn-circle, .btn-icon { width: 32px; height: 32px; font-size: 12px; }
+  .result-list { gap: 10px; }
 }
 
 /* ========== Playlist Grid (for search results) ========== */
@@ -278,10 +342,17 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 .btn-secondary:hover { background: var(--bg-hover); }
 .btn-delete {
-  background: transparent; color: var(--danger); font-size: 13px;
-  padding: 4px 6px; border-radius: var(--radius-sm);
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s; font-size: 14px; padding: 0;
+  background: rgba(255, 82, 82, 0.08); color: var(--danger);
+  border: 1px solid rgba(255, 82, 82, 0.2);
 }
-.btn-delete:hover { background: rgba(255, 82, 82, 0.1); }
+.btn-delete:hover { background: rgba(255, 82, 82, 0.15); border-color: var(--danger); transform: scale(1.1); }
+
+@media (max-width: 768px) {
+  .btn-delete { width: 32px; height: 32px; font-size: 12px; }
+}
 
 .input {
   padding: 7px 10px; border-radius: var(--radius);
@@ -291,22 +362,24 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
 .input:focus { border-color: var(--primary); outline: none; }
 
 .btn-link {
-  background: none; border: none; color: var(--accent);
-  font-size: 13px; padding: 2px 0; cursor: pointer;
+  background: none; border: none; color: inherit;
+  font-size: inherit; padding: 0; cursor: pointer;
+  border-bottom: 1px dashed transparent; transition: all 0.2s;
 }
-.btn-link:hover { text-decoration: underline; }
+.btn-link:hover { color: var(--primary); border-bottom-color: var(--primary); }
 
 /* ========== Rename ========== */
-.rename-row { display: flex; gap: 4px; align-items: center; }
 .rename-input {
   padding: 4px 8px; border-radius: var(--radius-sm);
   border: 1px solid var(--primary); background: var(--bg-card);
-  color: var(--text); font-size: 12px; max-width: 140px;
+  color: var(--text); font-size: 12px; max-width: 120px;
 }
 .rename-input:focus { outline: none; }
 
 /* ========== Local file name column ========== */
-.local-name { display: flex; align-items: center; gap: 6px; }
+.rename-inline {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
 
 /* ========== States ========== */
 .loading { text-align: center; padding: 30px; color: var(--text-secondary); }

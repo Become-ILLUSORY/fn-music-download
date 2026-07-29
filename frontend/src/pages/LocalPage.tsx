@@ -102,7 +102,7 @@ export default function LocalPage() {
   const songsWithActions = songs.map(s => ({
     ...s,
     _actions: (
-      <div className="action-btns" style={{ display: 'flex', gap: 4 }}>
+      <div style={{ display: 'flex', gap: 4 }}>
         {renaming === s.path ? (
           <>
             <input
@@ -113,13 +113,13 @@ export default function LocalPage() {
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter') handleRename(s); if (e.key === 'Escape') setRenaming(null) }}
             />
-            <button className="btn-icon" onClick={() => handleRename(s)} title="确认">✓</button>
-            <button className="btn-icon" onClick={() => setRenaming(null)} title="取消">✕</button>
+            <button className="btn-circle btn-dl" onClick={() => handleRename(s)} title="确认">✓</button>
+            <button className="btn-circle btn-dl" onClick={() => setRenaming(null)} title="取消">✕</button>
           </>
         ) : (
           <>
-            <button className="btn-icon" onClick={() => startRename(s)} title="重命名">✏️</button>
-            <button className="btn-icon" onClick={() => handleDelete(s)} title="删除">🗑️</button>
+            <button className="btn-circle btn-dl" onClick={() => startRename(s)} title="重命名">✏️</button>
+            <button className="btn-circle btn-delete" onClick={() => handleDelete(s)} title="删除">🗑️</button>
           </>
         )}
       </div>
@@ -142,31 +142,38 @@ export default function LocalPage() {
 
       {songs.length > 0 ? (
         <div>
-          {/* Desktop table */}
-          <table className="song-table">
-            <thead>
-              <tr>
-                <th className="col-name">文件名</th>
-                <th className="col-size">大小</th>
-                <th className="col-modified">修改时间</th>
-                <th className="col-actions">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {songs.map(s => (
-                <tr key={s.path} className="song-row">
-                  <td className="col-name">
-                    <div className="local-name">
-                      <button className="btn-link" onClick={() => setCurrentSong(s)} title="播放">
-                        {s.name}.{s.ext}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="col-size">{(s.size / 1024 / 1024).toFixed(1)} MB</td>
-                  <td className="col-modified">{new Date(s.modified).toLocaleString()}</td>
-                  <td className="col-actions">
-                    {renaming === s.path ? (
-                      <div className="rename-row">
+          <div className="list-header">
+            <div className="result-count">
+              共 <span className="count">{songs.length}</span> 首本地音乐
+            </div>
+          </div>
+
+          <ul className="result-list">
+            {songs.map(s => (
+              <li key={s.path} className="song-card">
+                <div className="cover-wrapper">
+                  <div className="cover-placeholder">💿</div>
+                </div>
+                <div className="song-info">
+                  <h3 className="song-name">
+                    <button className="btn-link" onClick={() => setCurrentSong(s)} title="播放">
+                      {s.name}.{s.ext}
+                    </button>
+                  </h3>
+                  <div className="artist-line">
+                    <span className="artist-text">{(s.size / 1024 / 1024).toFixed(1)} MB</span>
+                    <span className="meta-separator">·</span>
+                    <span className="artist-text">{new Date(s.modified).toLocaleString()}</span>
+                  </div>
+                  <div className="tags">
+                    <span className="tag tag-src">本地</span>
+                    <span className="tag">{s.ext?.toUpperCase()}</span>
+                  </div>
+                </div>
+                <div className="actions">
+                  {renaming === s.path ? (
+                    <>
+                      <div className="rename-inline">
                         <input
                           type="text"
                           value={renameValue}
@@ -175,56 +182,21 @@ export default function LocalPage() {
                           autoFocus
                           onKeyDown={e => { if (e.key === 'Enter') handleRename(s); if (e.key === 'Escape') setRenaming(null) }}
                         />
-                        <button className="btn-icon" onClick={() => handleRename(s)}>✓</button>
-                        <button className="btn-icon" onClick={() => setRenaming(null)}>✕</button>
+                        <button className="btn-circle btn-dl" onClick={() => handleRename(s)} title="确认">✓</button>
+                        <button className="btn-circle btn-dl" onClick={() => setRenaming(null)} title="取消">✕</button>
                       </div>
-                    ) : (
-                      <div className="action-btns">
-                        <button className="btn-icon" onClick={() => setCurrentSong(s)} title="播放">▶</button>
-                        <button className="btn-icon" onClick={() => startRename(s)} title="重命名">✏️</button>
-                        <button className="btn-icon" onClick={() => handleDelete(s)} title="删除">🗑️</button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Mobile cards */}
-          <div className="song-cards">
-            {songs.map(s => (
-              <div key={s.path} className="song-card">
-                <div className="card-body" style={{ flex: 1 }}>
-                  <div className="card-title">{s.name}.{s.ext}</div>
-                  <div className="card-meta">
-                    <span>{(s.size / 1024 / 1024).toFixed(1)} MB</span>
-                    <span>{new Date(s.modified).toLocaleString()}</span>
-                  </div>
-                  {renaming === s.path ? (
-                    <div className="rename-row">
-                      <input
-                        type="text"
-                        value={renameValue}
-                        onChange={e => setRenameValue(e.target.value)}
-                        className="rename-input"
-                        autoFocus
-                        onKeyDown={e => { if (e.key === 'Enter') handleRename(s); if (e.key === 'Escape') setRenaming(null) }}
-                      />
-                      <button className="btn-icon" onClick={() => handleRename(s)}>✓</button>
-                      <button className="btn-icon" onClick={() => setRenaming(null)}>✕</button>
-                    </div>
+                    </>
                   ) : (
-                    <div className="action-btns" style={{ marginTop: 4 }}>
-                      <button className="btn-icon" onClick={() => setCurrentSong(s)} title="播放">▶</button>
-                      <button className="btn-icon" onClick={() => startRename(s)} title="重命名">✏️</button>
-                      <button className="btn-icon" onClick={() => handleDelete(s)} title="删除">🗑️</button>
-                    </div>
+                    <>
+                      <button className="btn-circle btn-play" onClick={() => setCurrentSong(s)} title="播放">▶</button>
+                      <button className="btn-circle btn-dl" onClick={() => startRename(s)} title="重命名">✏️</button>
+                      <button className="btn-circle btn-delete" onClick={() => handleDelete(s)} title="删除">🗑️</button>
+                    </>
                   )}
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       ) : !loading && (
         <div className="empty-state">
